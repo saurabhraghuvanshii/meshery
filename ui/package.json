@@ -4,11 +4,11 @@
   "description": "collaborative management plane",
   "main": "index.js",
   "scripts": {
-    "dev": "npm run lint:fix && node ui_dev_server.js",
+    "dev": "npm run lint:fix &&  cross-env NODE_OPTIONS='--max-old-space-size=8192' node ui_dev_server.js",
     "lint": "eslint --cache --ext .js,.jsx,.ts,.tsx .",
     "lint:fix": "eslint --cache --fix --ext .js,.jsx,.ts,.tsx .",
     "format": "npx prettier --write \"**/*.{ts,tsx,js,jsx,md,json}\"",
-    "build": "npm run clean && cross-env next build",
+    "build": "npm run clean && cross-env NODE_OPTIONS='--max-old-space-size=8192' next build",
     "start": "NODE_ENV=production node ui_dev_server.js",
     "export": "node scripts/export-shim.js",
     "export-playground": "npm run clean && cross-env PLAYGROUND=true next build && rm -rf playground && mv out playground",

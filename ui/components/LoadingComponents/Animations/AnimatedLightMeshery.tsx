@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
+import './AnimatedMeshery.css';
 function getClassName(className, isActive) {
   if (!isActive) {
     return className;
@@ -24,7 +25,7 @@ const AnimatedLightMeshery = (props) => {
   }, [isActive]);
 
   return (
-    <div>
+    <div className="meshery-animated-logo">
       <svg
         id="Layer_1"
         data-name="Layer 1"

@@ -24,7 +24,6 @@ import 'react-resizable/css/styles.css';
 import { getConnectionIDsFromContextIds, getK8sConfigIdsFromK8sConfig } from '../utils/multi-ctx';
 import './../public/static/style/index.css';
 import './styles/AnimatedFilter.css';
-import './styles/AnimatedMeshery.css';
 import './styles/AnimatedMeshPattern.css';
 import './styles/AnimatedMeshSync.css';
 import PlaygroundMeshDeploy from './extension/AccessMesheryModal';
