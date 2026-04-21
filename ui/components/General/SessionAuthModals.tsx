@@ -174,7 +174,6 @@ export default function SessionAuthModals() {
           <Box
             sx={{
               backgroundColor: theme.palette.background.default,
-              margin: '-4px -24px 0 -24px',
               padding: `${CONTENT_TOP_PX}px ${CONTENT_SIDE_PX}px ${CONTENT_BOTTOM_PX}px ${CONTENT_SIDE_PX}px`,
               textAlign: 'center',
             }}
