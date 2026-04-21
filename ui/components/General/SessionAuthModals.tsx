@@ -9,9 +9,9 @@ import {
   DialogContent,
   DialogTitle,
   SAFFRON,
-  SvgIcon,
   Typography,
   useTheme,
+  WarningIcon,
 } from '@sistent/sistent';
 
 const SESSION_WARNING_EVENT = 'meshery:session-warning';
@@ -23,21 +23,6 @@ const CONTENT_TOP_PX = 34;
 const CONTENT_BOTTOM_PX = 30;
 const CONTENT_SIDE_PX = 24;
 const STRIP_HEIGHT_PX = 22;
-
-const RoundedWarningIcon = ({ fill, markFill }: { fill: string; markFill: string }) => (
-  <SvgIcon viewBox="0 0 24 24" sx={{ width: 24, height: 24 }}>
-    <path
-      fill={fill}
-      d="M11.02 3.95c.44-.76 1.52-.76 1.96 0l8.62 14.94c.44.76-.11 1.71-.98 1.71H3.38c-.87 0-1.42-.95-.98-1.71L11.02 3.95Z"
-      style={{ strokeLinejoin: 'round' }}
-    />
-    <path
-      fill={markFill}
-      d="M11 8.25c0-.55.45-1 1-1s1 .45 1 1v5.1c0 .55-.45 1-1 1s-1-.45-1-1v-5.1Z"
-    />
-    <path fill={markFill} d="M12 17.55a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3Z" />
-  </SvgIcon>
-);
 
 export default function SessionAuthModals() {
   const theme = useTheme();
@@ -144,7 +129,7 @@ export default function SessionAuthModals() {
             justifyContent: 'center',
             position: 'relative',
             background: SAFFRON,
-            color: theme.palette.background.constant.white,
+            color: theme.palette.text.default,
             fontWeight: 500,
             fontSize: '18px',
             lineHeight: '26px',
@@ -163,10 +148,9 @@ export default function SessionAuthModals() {
               left: '16px',
               top: '50%',
               transform: 'translateY(-50%)',
-              borderRadius: '16px',
             }}
           >
-            <RoundedWarningIcon fill={theme.palette.background.constant.white} markFill={SAFFRON} />
+            <WarningIcon color={BLACK} width={24} height={24} />
           </Box>
           Session Expired
         </DialogTitle>
