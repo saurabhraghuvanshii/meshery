@@ -24,7 +24,6 @@ import (
 	"github.com/meshery/meshery/mesheryctl/internal/cli/pkg/api"
 
 	"github.com/meshery/meshery/mesheryctl/internal/cli/root/config"
-
 	"github.com/meshery/meshery/mesheryctl/pkg/utils"
 	"github.com/pkg/errors"
 
@@ -142,7 +141,7 @@ mesheryctl system config aks
 		aksCheck.Stderr = os.Stderr
 		err := aksCheck.Run()
 		if err != nil {
-			return ErrK8sConfig(fmt.Errorf("azure CLI not found. Please install Azure CLI and try again (see https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)"))
+			return ErrSystemAzureCliNotFound(fmt.Errorf("azure CLI not found. Please install Azure CLI and try again"))
 		}
 		utils.Log.Info("Configuring Meshery to access AKS...")
 		var resourceGroup, aksName string
@@ -155,7 +154,7 @@ mesheryctl system config aks
 			utils.Log.Info("Let's try again. Please enter the Azure resource group name:")
 			_, err = fmt.Scanf("%s", &resourceGroup)
 			if err != nil {
-				return ErrK8sConfig(fmt.Errorf("error reading Azure resource group name: %s", err.Error()))
+				return ErrSystemAzureAksGetCredentials(fmt.Errorf("error reading Azure resource group name: %w", err))
 			}
 		}
 
@@ -167,7 +166,7 @@ mesheryctl system config aks
 			utils.Log.Info("Let's try again. Please enter the AKS cluster name:")
 			_, err = fmt.Scanf("%s", &aksName)
 			if err != nil {
-				return ErrK8sConfig(fmt.Errorf("error reading AKS cluster name: %s", err.Error()))
+				return ErrSystemAzureAksGetCredentials(fmt.Errorf("error reading AKS cluster name: %w", err))
 			}
 		}
 
@@ -210,7 +209,7 @@ mesheryctl system config eks
 		eksCheck.Stderr = os.Stderr
 		err := eksCheck.Run()
 		if err != nil {
-			return ErrK8sConfig(fmt.Errorf("aws CLI not found. Please install AWS CLI and try again (see https://docs.aws.amazon.com/cli/latest/reference/)"))
+			return ErrSystemAwsCliNotFound(fmt.Errorf("aws CLI not found. Please install AWS CLI and try again"))
 		}
 		utils.Log.Info("Configuring Meshery to access EKS...")
 		var regionName, clusterName string
@@ -223,7 +222,7 @@ mesheryctl system config eks
 			utils.Log.Info("Let's try again. Please enter the AWS region name:")
 			_, err = fmt.Scanf("%s", &regionName)
 			if err != nil {
-				return ErrK8sConfig(fmt.Errorf("error reading AWS region name: %s", err.Error()))
+				return ErrSystemEksGetCredentials(fmt.Errorf("error reading AWS region name: %w", err))
 			}
 		}
 
@@ -235,7 +234,7 @@ mesheryctl system config eks
 			utils.Log.Info("Let's try again. Please enter the AWS cluster name:")
 			_, err = fmt.Scanf("%s", &clusterName)
 			if err != nil {
-				return ErrK8sConfig(fmt.Errorf("error reading AWS cluster name: %s", err.Error()))
+				return ErrSystemEksGetCredentials(fmt.Errorf("error reading AWS cluster name: %w", err))
 			}
 		}
 
@@ -246,7 +245,7 @@ mesheryctl system config eks
 		// Write EKS compatible config to the filesystem
 		err = eksCmd.Run()
 		if err != nil {
-			return ErrK8sConfig(fmt.Errorf("error generating kubeconfig: %s", err.Error()))
+			return ErrSystemEksGetCredentials(fmt.Errorf("error generating kubeconfig: %w", err))
 		}
 		utils.Log.Debugf("EKS configuration is written to: %s", utils.ConfigPath)
 
@@ -277,7 +276,7 @@ mesheryctl system config gke
 		utils.Log.Info("Configuring Meshery to access GKE...")
 		SAName := "sa-meshery-" + utils.StringWithCharset(8)
 		if err := utils.GenerateConfigGKE(utils.ConfigPath, SAName, "default"); err != nil {
-			return ErrK8sConfig(fmt.Errorf("error generating config: %w", err))
+			return ErrSystemGkeGenerateConfig(fmt.Errorf("error generating config: %w", err))
 		}
 		utils.Log.Debugf("GKE configuration is written to: %s", utils.ConfigPath)
 
@@ -307,13 +306,13 @@ mesheryctl system config minikube
 		utils.Log.Info("Configuring Meshery to access Minikube...")
 		// Get the config from the default config path
 		if _, err := os.Stat(utils.KubeConfig); err != nil {
-			return ErrK8sConfig(fmt.Errorf("could not find the default kube config: %w", err))
+			return ErrSystemMinikubeKubeconfig(fmt.Errorf("could not find the default kube config: %w", err))
 		}
 
 		// Minifies and flattens kubeconfig and writes it to kubeconfig.yaml
 		_, _, err := meshkitkube.ProcessConfig(utils.KubeConfig, utils.ConfigPath)
 		if err != nil {
-			return ErrK8sConfig(fmt.Errorf("error writing config to file: %w", err))
+			return ErrSystemMinikubeKubeconfig(fmt.Errorf("error writing config to file: %w", err))
 		}
 
 		utils.Log.Infof("A flattened Minikube kubeconfig file available at: %s", utils.ConfigPath)
