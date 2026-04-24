@@ -197,6 +197,8 @@ const (
 	ErrInvalidConnectionKindCode           = "meshery-server-1412"
 	ErrUpdateConnectionCode                = "meshery-server-1413"
 	ErrExportModelCode                     = "meshery-server-1414"
+	ErrInvalidContextsConfigCode           = "meshery-server-1415"
+	ErrEmptyConnectionIDCode               = "meshery-server-1416"
 )
 
 var (
@@ -872,4 +874,16 @@ func ErrUpdateConnection(err error) error {
 // sub-step failed so the UI can surface a specific remediation.
 func ErrExportModel(err error, stage string) error {
 	return errors.New(ErrExportModelCode, errors.Alert, []string{fmt.Sprintf("Failed to export model during %s", stage)}, []string{err.Error()}, []string{"Temp directory is not writable.", "Model definition references a missing dependency.", "OCI/tar tooling produced an invalid artifact."}, []string{"Retry the export; if it persists, inspect server logs and disk availability under the temp directory."})
+}
+
+// ErrInvalidContextsConfig wraps failures to parse the `contexts` form field
+// of the kubeconfig upload endpoint. Emitted with HTTP 400.
+func ErrInvalidContextsConfig(err error) error {
+	return errors.New(ErrInvalidContextsConfigCode, errors.Alert, []string{"Invalid contexts configuration"}, []string{err.Error()}, []string{"The `contexts` form field is not a valid JSON map from context ID to {meshsync_deployment_mode: string}."}, []string{"Send a well-formed JSON object in the `contexts` form field, e.g. {\"<contextID>\": {\"meshsync_deployment_mode\": \"operator\"}}."})
+}
+
+// ErrEmptyConnectionID is returned from endpoints that require a connection
+// ID query parameter when none is supplied. Emitted with HTTP 400.
+func ErrEmptyConnectionID() error {
+	return errors.New(ErrEmptyConnectionIDCode, errors.Alert, []string{"Empty connection ID"}, []string{"No connection ID was supplied in the canonical `connectionId` query parameter (the legacy `connection_id` spelling is also accepted during the Phase 2 deprecation window)."}, []string{"The client did not pass `connectionId` in the query string.", "A URL template did not get its parameter substituted."}, []string{"Pass the connection ID of the Kubernetes context to be pinged, e.g. /api/system/kubernetes/ping?connectionId=<id>."})
 }

@@ -70,14 +70,14 @@ func (h *Handler) addK8SConfig(user *models.User, _ *models.Preference, w http.R
 	if !ok {
 		err := ErrRetrieveUserToken(fmt.Errorf("failed to retrieve user token"))
 		h.log.Error(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeMeshkitError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	k8sConfigBytes, err := readK8sConfigFromBody(req)
 	if err != nil {
 		h.log.Error(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeMeshkitError(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -104,8 +104,8 @@ func (h *Handler) addK8SConfig(user *models.User, _ *models.Preference, w http.R
 	var contextsConfig map[string]ContextOptions
 	if contextsJSON := req.FormValue(ContextsFormKey); contextsJSON != "" {
 		if err := json.Unmarshal([]byte(contextsJSON), &contextsConfig); err != nil {
-			h.log.Error(fmt.Errorf("failed to parse contexts configuration: %w", err))
-			http.Error(w, fmt.Sprintf("Invalid contexts configuration: %v", err), http.StatusBadRequest)
+			h.log.Error(ErrInvalidContextsConfig(err))
+			writeMeshkitError(w, ErrInvalidContextsConfig(err), http.StatusBadRequest)
 			return
 		}
 	}
@@ -214,8 +214,10 @@ func (h *Handler) addK8SConfig(user *models.User, _ *models.Preference, w http.R
 	go h.config.EventBroadcaster.Publish(userID, event)
 
 	if err := json.NewEncoder(w).Encode(saveK8sContextResponse); err != nil {
+		// Response body has already started streaming via json.Encoder —
+		// a partial JSON envelope is on the wire and a fresh error
+		// response would corrupt it, so log only.
 		h.log.Error(models.ErrMarshal(err, "kubeconfig"))
-		http.Error(w, models.ErrMarshal(err, "kubeconfig").Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -237,14 +239,14 @@ func (h *Handler) GetContextsFromK8SConfig(w http.ResponseWriter, req *http.Requ
 	token, err := provider.GetProviderToken(req)
 	if err != nil {
 		h.log.Error(ErrRetrieveUserToken(err))
-		http.Error(w, ErrRetrieveUserToken(err).Error(), http.StatusInternalServerError)
+		writeMeshkitError(w, ErrRetrieveUserToken(err), http.StatusInternalServerError)
 		return
 	}
 
 	k8sConfigBytes, err := readK8sConfigFromBody(req)
 	if err != nil {
 		h.log.Error(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeMeshkitError(w, err, http.StatusBadRequest)
 		return
 	}
 	userUUID := user.ID
@@ -261,8 +263,10 @@ func (h *Handler) GetContextsFromK8SConfig(w http.ResponseWriter, req *http.Requ
 
 	err = json.NewEncoder(w).Encode(contexts)
 	if err != nil {
+		// Response body has already started streaming via json.Encoder —
+		// a partial JSON envelope is on the wire and a fresh error
+		// response would corrupt it, so log only.
 		h.log.Error(models.ErrMarshal(err, "kube-context"))
-		http.Error(w, models.ErrMarshal(err, "kube-context").Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -301,26 +305,29 @@ func (h *Handler) KubernetesPingHandler(w http.ResponseWriter, req *http.Request
 		version, err := kubeclient.KubeClient.ServerVersion()
 		if err != nil {
 			h.log.Error(ErrKubeVersion(err))
-			http.Error(w, ErrKubeVersion(err).Error(), http.StatusInternalServerError)
+			writeMeshkitError(w, ErrKubeVersion(err), http.StatusInternalServerError)
 			return
 		}
 		if err = json.NewEncoder(w).Encode(map[string]string{
 			"server_version": version.String(),
 		}); err != nil {
+			// Response body has already started streaming via json.Encoder —
+			// a partial JSON envelope is on the wire and a fresh error
+			// response would corrupt it, so log only.
 			err = errors.Wrap(err, "unable to marshal the payload")
 			h.log.Error(models.ErrMarshal(err, "kube-server-version"))
-			http.Error(w, models.ErrMarshal(err, "kube-server-version").Error(), http.StatusInternalServerError)
 		}
 		return
 	}
-	http.Error(w, "Empty connection ID. Pass the connection ID of the kubernetes context to be pinged in the canonical query parameter \"connectionId\" (the legacy \"connection_id\" spelling is also accepted during the Phase 2 deprecation window).", http.StatusBadRequest)
+	h.log.Error(ErrEmptyConnectionID())
+	writeMeshkitError(w, ErrEmptyConnectionID(), http.StatusBadRequest)
 }
 
 func (h *Handler) K8sRegistrationHandler(w http.ResponseWriter, req *http.Request, _ *models.Preference, user *models.User, provider models.Provider) {
 	k8sConfigBytes, err := readK8sConfigFromBody(req)
 	if err != nil {
 		h.log.Error(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeMeshkitError(w, err, http.StatusBadRequest)
 		return
 	}
 
