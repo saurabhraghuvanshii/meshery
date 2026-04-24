@@ -46,7 +46,7 @@ func (h *Handler) LoadTestUsingSMPHandler(w http.ResponseWriter, req *http.Reque
 		body, err = yaml.JSONToYAML(body)
 		if err != nil {
 			h.log.Error(ErrPatternFile(err))
-			http.Error(w, ErrPatternFile(err).Error(), http.StatusInternalServerError)
+			writeMeshkitError(w, ErrPatternFile(err), http.StatusInternalServerError)
 			return
 		}
 	}
@@ -56,7 +56,7 @@ func (h *Handler) LoadTestUsingSMPHandler(w http.ResponseWriter, req *http.Reque
 	perfTest := &models.PerformanceTestConfigFile{}
 	if err := json.Unmarshal(jsonBytes, perfTest); err != nil {
 		h.log.Error(ErrParseBool(err, "provided input"))
-		http.Error(w, ErrParseBool(err, "provided input").Error(), http.StatusBadRequest)
+		writeMeshkitError(w, ErrParseBool(err, "provided input"), http.StatusBadRequest)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *Handler) LoadTestUsingSMPHandler(w http.ResponseWriter, req *http.Reque
 	testName := perfTest.Config.Name
 	if testName == "" {
 		h.log.Error(ErrBlankName(err))
-		http.Error(w, ErrBlankName(err).Error(), http.StatusForbidden)
+		writeMeshkitError(w, ErrBlankName(err), http.StatusForbidden)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *Handler) LoadTestUsingSMPHandler(w http.ResponseWriter, req *http.Reque
 	testDuration, err := time.ParseDuration(perfTest.Config.Duration)
 	if err != nil {
 		h.log.Error(ErrParseDuration)
-		http.Error(w, ErrParseDuration.Error(), http.StatusBadRequest)
+		writeMeshkitError(w, ErrParseDuration, http.StatusBadRequest)
 		return
 	}
 	loadTestOptions.Duration = testDuration
@@ -102,12 +102,12 @@ func (h *Handler) LoadTestUsingSMPHandler(w http.ResponseWriter, req *http.Reque
 	if err != nil {
 		obj := "the provided load test"
 		h.log.Error(ErrParseBool(err, obj))
-		http.Error(w, ErrParseBool(err, obj).Error(), http.StatusBadRequest)
+		writeMeshkitError(w, ErrParseBool(err, obj), http.StatusBadRequest)
 		return
 	}
 	if !ltURL.IsAbs() {
 		h.log.Error(ErrInvalidLTURL(ltURL.String()))
-		http.Error(w, ErrInvalidLTURL(ltURL.String()).Error(), http.StatusBadRequest)
+		writeMeshkitError(w, ErrInvalidLTURL(ltURL.String()), http.StatusBadRequest)
 		return
 	}
 	loadTestOptions.Name = testName
@@ -155,7 +155,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		h.log.Error(ErrRequestBody(err))
-		http.Error(w, ErrRequestBody(err).Error(), http.StatusInternalServerError)
+		writeMeshkitError(w, ErrRequestBody(err), http.StatusBadRequest)
 		return
 	}
 
@@ -181,7 +181,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 	performanceProfileData, err := provider.GetPerformanceProfile(req, profileID)
 	if err != nil {
 		h.log.Error(err)
-		http.Error(w, ErrFetchProfile(err).Error(), http.StatusInternalServerError)
+		writeMeshkitError(w, ErrFetchProfile(err), http.StatusInternalServerError)
 		return
 	}
 
@@ -189,7 +189,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 	err = json.Unmarshal(performanceProfileData, &performanceProfile)
 	if err != nil {
 		h.log.Error(models.ErrUnmarshal(err, "performance profile"))
-		http.Error(w, models.ErrUnmarshal(err, "performance profile").Error(), http.StatusInternalServerError)
+		writeMeshkitError(w, models.ErrUnmarshal(err, "performance profile"), http.StatusBadRequest)
 		return
 	}
 
@@ -211,7 +211,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 				file, err := os.CreateTemp(os.TempDir(), filePath)
 				if err != nil {
 					h.log.Error(ErrCreateFile(err, certificateName))
-					http.Error(w, ErrCreateFile(err, certificateName).Error(), http.StatusInternalServerError)
+					writeMeshkitError(w, ErrCreateFile(err, certificateName), http.StatusInternalServerError)
 					return
 				}
 				cleanUpFiles = append(cleanUpFiles, file.Name())
@@ -220,7 +220,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 				_, err = file.Write([]byte(certificateData))
 				if err != nil {
 					h.log.Error(ErrCreateFile(err, certificateName))
-					http.Error(w, ErrCreateFile(err, certificateName).Error(), http.StatusInternalServerError)
+					writeMeshkitError(w, ErrCreateFile(err, certificateName), http.StatusInternalServerError)
 					return
 				}
 				assignCertificatePath("ca_certificate", file.Name(), loadTestOptions)
@@ -241,7 +241,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 	if err != nil {
 		obj := "form"
 		h.log.Error(ErrParseBool(err, obj))
-		http.Error(w, ErrParseBool(err, obj).Error(), http.StatusForbidden)
+		writeMeshkitError(w, ErrParseBool(err, obj), http.StatusForbidden)
 		return
 	}
 	q := req.URL.Query()
@@ -249,7 +249,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 	testName := q.Get("name")
 	if testName == "" {
 		h.log.Error(ErrBlankName(err))
-		http.Error(w, ErrBlankName(err).Error(), http.StatusForbidden)
+		writeMeshkitError(w, ErrBlankName(err), http.StatusForbidden)
 		return
 	}
 	meshName := q.Get("mesh")
@@ -289,7 +289,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 	if err != nil {
 		obj := "load test duration"
 		h.log.Error(ErrParseBool(err, obj))
-		http.Error(w, ErrParseBool(err, obj).Error(), http.StatusForbidden)
+		writeMeshkitError(w, ErrParseBool(err, obj), http.StatusForbidden)
 		return
 	}
 
@@ -304,7 +304,7 @@ func (h *Handler) LoadTestHandler(w http.ResponseWriter, req *http.Request, pref
 	if err != nil || !ltURL.IsAbs() {
 		obj := "the provided load test url"
 		h.log.Error(ErrParseBool(err, obj))
-		http.Error(w, ErrParseBool(err, obj).Error(), http.StatusBadRequest)
+		writeMeshkitError(w, ErrParseBool(err, obj), http.StatusBadRequest)
 		return
 	}
 	loadTestOptions.URL = loadTestURL
@@ -337,7 +337,7 @@ func (h *Handler) loadTestHelperHandler(w http.ResponseWriter, req *http.Request
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.log.Error(ErrEventStreamingNotSupported)
-		http.Error(w, ErrEventStreamingNotSupported.Error(), http.StatusInternalServerError)
+		writeMeshkitError(w, ErrEventStreamingNotSupported, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
