@@ -1314,13 +1314,7 @@ func (h *Handler) ExportModel(rw http.ResponseWriter, r *http.Request) {
 			message += fmt.Sprintf("version %s ", version)
 		}
 		message += "has not been found"
-		// h.log.Error(ErrGetMeshModels(err))
-		// http.Error(rw, ErrGetMeshModels(err).Error(), http.StatusNotFound)
-		rw.WriteHeader(http.StatusNotFound)
-		// rw.Write([]byte(message))
-		if _, err := fmt.Fprintln(rw, message); err != nil {
-			h.log.Error(err)
-		}
+		writeJSONError(rw, message, http.StatusNotFound)
 		return
 	}
 
