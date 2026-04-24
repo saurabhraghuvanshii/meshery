@@ -163,6 +163,7 @@ const (
 	ErrCreatingOPAInstanceCode             = "meshery-server-1367"
 	ErrEncodeResponseCode                  = "meshery-server-1374"
 	ErrTransientProviderCode               = "meshery-server-1378"
+	ErrServeSchemaCode                     = "meshery-server-1381"
 )
 
 var (
@@ -682,4 +683,7 @@ func ErrEncodeResponse(err error) error {
 }
 func ErrCreatingOPAInstance(err error) error {
 	return errors.New(ErrCreatingOPAInstanceCode, errors.Alert, []string{"Error creating OPA Instance."}, []string{err.Error()}, []string{"Unable to create OPA instance, policies will not be evaluated."}, []string{"Ensure relationships are registered"})
+}
+func ErrServeSchema(err error) error {
+	return errors.New(ErrServeSchemaCode, errors.Alert, []string{"Failed to serve the requested schema"}, []string{err.Error()}, []string{"Requested resource's schema could not be found or read"}, []string{"Ensure the resource name is spelled correctly and that the schema is bundled with the server"})
 }
