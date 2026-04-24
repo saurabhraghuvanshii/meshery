@@ -69,7 +69,7 @@ func (h *Handler) UserTestPreferenceStore(w http.ResponseWriter, req *http.Reque
 		http.Error(w, ErrFailToSave(err, obj).Error(), http.StatusBadRequest)
 		return
 	}
-	_, _ = w.Write([]byte(tid))
+	writeJSONMessage(w, map[string]string{"test_uuid": tid}, http.StatusOK)
 }
 
 // UserTestPreferenceGet gets the PerformanceTestConfig object
