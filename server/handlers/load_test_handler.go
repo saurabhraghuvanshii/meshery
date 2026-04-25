@@ -361,7 +361,7 @@ func (h *Handler) loadTestHelperHandler(w http.ResponseWriter, req *http.Request
 			bd, err := json.Marshal(data)
 			if err != nil {
 				h.log.Error(models.ErrMarshal(err, "meshery result for shipping"))
-				http.Error(w, models.ErrMarshal(err, "meshery result for shipping").Error(), http.StatusInternalServerError)
+				http.Error(w, models.ErrMarshal(err, "meshery result for shipping").Error(), http.StatusInternalServerError) //nolint:forbidigo // SSE error channel emits text/event-stream by contract
 				return
 			}
 
