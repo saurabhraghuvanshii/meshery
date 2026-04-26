@@ -63,12 +63,12 @@ const (
 	ErrDockerUnknownCode                  = "mesheryctl-1211"
 	ErrOperatorUnsupportedPlatformCode    = "mesheryctl-1219"
 	ErrLogoutCode                         = "mesheryctl-1229"
-	ErrSystemAzureAksGetCredentialsCode   = "mesheryctl-1232"
-	ErrSystemAzureCliNotFoundCode         = "mesheryctl-1233"
-	ErrSystemAwsCliNotFoundCode           = "mesheryctl-1234"
-	ErrSystemGkeGenerateConfigCode        = "mesheryctl-1235"
-	ErrSystemEksGetCredentialsCode        = "mesheryctl-1236"
-	ErrSystemMinikubeKubeconfigCode       = "mesheryctl-1237"
+	ErrSystemAzureAksGetCredentialsCode   = "mesheryctl-1234"
+	ErrSystemAzureCliNotFoundCode         = "mesheryctl-1235"
+	ErrSystemAwsCliNotFoundCode           = "mesheryctl-1236"
+	ErrSystemGkeGenerateConfigCode        = "mesheryctl-1237"
+	ErrSystemEksGetCredentialsCode        = "mesheryctl-1238"
+	ErrSystemMinikubeKubeconfigCode       = "mesheryctl-1239"
 )
 
 var (

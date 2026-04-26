@@ -16,15 +16,14 @@ import (
 	mcore "github.com/meshery/meshery/server/models/meshmodel/core"
 
 	// for GKE kube API authentication
-	"github.com/gofrs/uuid"
 	"github.com/meshery/meshery/server/helpers"
 	"github.com/meshery/meshery/server/models"
+	"github.com/meshery/schemas/models/core"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
 	"github.com/meshery/meshkit/models/events"
 
 	"github.com/meshery/meshkit/utils"
-	schemasConnection "github.com/meshery/schemas/models/v1beta1/connection"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -140,9 +139,9 @@ func (h *Handler) addK8SConfig(user *models.User, _ *models.Preference, w http.R
 		// Create context-specific metadata with appropriate meshsync deployment mode
 		k8sContextsMetadata := make(map[string]any, 1)
 		meshsyncMode := getMeshsyncModeForContext(ctx)
-		schemasConnection.SetMeshsyncDeploymentModeToMetadata(
+		connections.SetMeshsyncDeploymentModeToMetadata(
 			k8sContextsMetadata,
-			schemasConnection.MeshsyncDeploymentModeFromString(meshsyncMode),
+			connections.MeshsyncDeploymentModeFromString(meshsyncMode),
 		)
 
 		connection, err := provider.SaveK8sContext(token, *ctx, k8sContextsMetadata)
@@ -197,7 +196,7 @@ func (h *Handler) addK8SConfig(user *models.User, _ *models.Preference, w http.R
 			go func(inst *machines.StateMachine) {
 				event, err := inst.SendEvent(req.Context(), machines.EventType(mhelpers.StatusToEvent(status)), nil)
 				if err != nil {
-					_ = provider.PersistEvent(*event, nil)
+					_ = provider.PersistEvent(*event, token)
 					go h.config.EventBroadcaster.Publish(userID, event)
 				}
 			}(inst)
@@ -211,7 +210,7 @@ func (h *Handler) addK8SConfig(user *models.User, _ *models.Preference, w http.R
 	}
 
 	event := eventBuilder.WithMetadata(eventMetadata).Build()
-	_ = provider.PersistEvent(*event, nil)
+	_ = provider.PersistEvent(*event, token)
 	go h.config.EventBroadcaster.Publish(userID, event)
 
 	if err := json.NewEncoder(w).Encode(saveK8sContextResponse); err != nil {
@@ -235,6 +234,12 @@ func (h *Handler) deleteK8SConfig(_ *models.User, _ *models.Preference, w http.R
 
 // GetContextsFromK8SConfig returns the context list for a given k8s config
 func (h *Handler) GetContextsFromK8SConfig(w http.ResponseWriter, req *http.Request, _ *models.Preference, user *models.User, provider models.Provider) {
+	token, err := provider.GetProviderToken(req)
+	if err != nil {
+		h.log.Error(ErrRetrieveUserToken(err))
+		http.Error(w, ErrRetrieveUserToken(err).Error(), http.StatusInternalServerError)
+		return
+	}
 
 	k8sConfigBytes, err := readK8sConfigFromBody(req)
 	if err != nil {
@@ -251,7 +256,7 @@ func (h *Handler) GetContextsFromK8SConfig(w http.ResponseWriter, req *http.Requ
 	contexts := models.K8sContextsFromKubeconfig(provider, user.ID.String(), h.config.EventBroadcaster, *k8sConfigBytes, h.SystemID, eventMetadata, h.log)
 
 	event := eventBuilder.WithMetadata(eventMetadata).Build()
-	_ = provider.PersistEvent(*event, nil)
+	_ = provider.PersistEvent(*event, token)
 	go h.config.EventBroadcaster.Publish(userUUID, event)
 
 	err = json.NewEncoder(w).Encode(contexts)
@@ -273,7 +278,15 @@ func (h *Handler) KubernetesPingHandler(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	connectionID := req.URL.Query().Get("connection_id")
+	// Canonical query param is `connectionId`; `connection_id` is
+	// dual-accepted during the Phase 2 deprecation window so any legacy
+	// client (mesheryctl, older UI bundles) keeps working. Retire the
+	// fallback once Phase 3 consumer migration completes.
+	q := req.URL.Query()
+	connectionID := q.Get("connectionId")
+	if connectionID == "" {
+		connectionID = q.Get("connection_id")
+	}
 	if connectionID != "" {
 		// Get the context associated with this ID
 		k8sContext, err := provider.GetK8sContext(token, connectionID)
@@ -309,7 +322,7 @@ func (h *Handler) KubernetesPingHandler(w http.ResponseWriter, req *http.Request
 		}
 		return
 	}
-	http.Error(w, "Empty contextID. Pass the context ID(in query parameter \"context\") of the kuberenetes to be pinged", http.StatusBadRequest)
+	http.Error(w, "Empty connection ID. Pass the connection ID of the kubernetes context to be pinged in the canonical query parameter \"connectionId\" (the legacy \"connection_id\" spelling is also accepted during the Phase 2 deprecation window).", http.StatusBadRequest)
 }
 
 func (h *Handler) K8sRegistrationHandler(w http.ResponseWriter, req *http.Request, _ *models.Preference, user *models.User, provider models.Provider) {
@@ -333,7 +346,7 @@ func (h *Handler) DiscoverK8SContextFromKubeConfig(userID string, token string, 
 	// userUUID := uuid.FromStringOrNil(userID)
 
 	// Get meshery instance ID
-	mid, ok := viper.Get("INSTANCE_ID").(*uuid.UUID)
+	mid, ok := viper.Get("INSTANCE_ID").(*core.Uuid)
 	if !ok {
 		return contexts, models.ErrMesheryInstanceID
 	}
