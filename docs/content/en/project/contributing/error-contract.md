@@ -10,12 +10,13 @@ Every non-2xx HTTP response from Meshery Server carries a JSON body with
 `Content-Type: application/json; charset=utf-8`. Clients should parse the body
 as JSON before surfacing errors to users.
 
-> **Migration status:** the contract below is the target shape. A small number of
-> legacy endpoints still emit plain-text bodies during the migration tracked in
-> [`docs/superpowers/plans/2026-04-24-plaintext-response-migration.md`](../../../../superpowers/plans/2026-04-24-plaintext-response-migration.md).
-> Clients should implement the JSON-first contract now — all new code and
-> remediated endpoints follow it, and the plain-text escape hatches are being
-> removed wave by wave.
+> **Migration status:** the JSON contract is enforced for all server endpoints
+> in `server/handlers/` and `server/models/*provider*.go` — any new `http.Error`
+> call there fails CI via the `forbidigo` lint rule. Legitimate exceptions are
+> the SSE error channel in `load_test_handler.go`, healthz probes, the
+> static-asset UI handler, and binary downloads. See PR
+> [#18919](https://github.com/meshery/meshery/pull/18919) for the migration
+> history.
 
 ## Shape
 
@@ -72,7 +73,34 @@ Do not use `http.Error` in handlers or provider code. It writes
 `Content-Type: text/plain` and strips MeshKit metadata, which crashes
 RTK Query's default baseQuery on the UI.
 
-Legitimate exceptions (to be enforced by a `forbidigo` allowlist in `.github/.golangci.yml` once the migration lint guard lands — see Phase 2 of `docs/superpowers/plans/2026-04-24-plaintext-response-migration.md`):
+### Streaming JSON responses
+
+When a handler writes a JSON body via `json.NewEncoder(w).Encode(...)`,
+encoding into the `ResponseWriter` directly commits headers + status before
+the encoder errors. If the encode fails partway, you cannot emit a fresh
+error response — the wire already has a partial JSON envelope and a 200 OK
+status. **Buffer first, write once:**
+
+```go
+var buf bytes.Buffer
+if err := json.NewEncoder(&buf).Encode(payload); err != nil {
+    // No headers committed yet — safe to emit a fresh error response.
+    writeMeshkitError(w, ErrEncoding(err, "<object name>"), http.StatusInternalServerError)
+    return
+}
+w.Header().Set("Content-Type", "application/json; charset=utf-8")
+if _, err := w.Write(buf.Bytes()); err != nil {
+    // Client likely disconnected; headers already committed, can't emit
+    // a new error. Log and move on.
+    h.log.Warn(fmt.Sprintf("write response: %v", err))
+}
+```
+
+The provider layer (`server/models/remote_provider.go`,
+`server/models/default_local_provider.go`) follows this pattern — see commit
+`ed1ce9f25c` for reference call sites.
+
+Legitimate exceptions (enforced by a `forbidigo` allowlist in `.github/.golangci.yml`; the lint guard was added advisory and later flipped to blocking — see PR [#18919](https://github.com/meshery/meshery/pull/18919) and the follow-up):
 - SSE stream handlers (`Content-Type: text/event-stream`)
 - Kubernetes healthz probes (plain text is the probe contract)
 - Binary/tar/YAML downloads
