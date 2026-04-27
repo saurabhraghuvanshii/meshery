@@ -424,7 +424,7 @@ mesheryctl system context create `
 
 		configuration.CurrentContext = contextName
 		viper.Set("current-context", configuration.CurrentContext)
-		utils.Log.Infof("Switched to context '%s'", contextName)
+		utils.Log.Infof("switched to context '%s'", contextName)
 		err = viper.WriteConfig()
 		if err != nil {
 			return config.ErrWriteMeshConfig(err)
