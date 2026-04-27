@@ -107,9 +107,7 @@ func (h *Handler) ExtensionsHandler(w http.ResponseWriter, req *http.Request, _ 
 	resp, err := provider.ExtensionProxy(req)
 	if err != nil {
 		h.log.Error(err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		writeMeshkitError(w, err, http.StatusInternalServerError)
 		return
 	}
 

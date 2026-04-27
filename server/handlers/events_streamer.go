@@ -279,8 +279,12 @@ func (h *Handler) EventStreamHandler(w http.ResponseWriter, req *http.Request, p
 	flusher, ok := w.(http.Flusher)
 
 	if !ok {
+		// This precondition fires BEFORE the SSE Content-Type headers are
+		// committed (set 3 lines below). The response is therefore a regular
+		// JSON error envelope, not a text/event-stream chunk — emit it via
+		// writeMeshkitError so RTK Query can parse it like any other error.
 		h.log.Error(ErrEventStreamingNotSupported)
-		http.Error(w, "Event streaming is not supported at the moment.", http.StatusInternalServerError)
+		writeMeshkitError(w, ErrEventStreamingNotSupported, http.StatusInternalServerError)
 		return
 	}
 
