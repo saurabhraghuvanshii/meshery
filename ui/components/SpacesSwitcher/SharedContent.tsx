@@ -59,10 +59,10 @@ const SharedContent = () => {
     }));
   }, []);
 
-  const handleAuthorChange = useCallback((user_id) => {
+  const handleAuthorChange = useCallback((userId) => {
     setFilters((prev) => ({
       ...prev,
-      author: user_id,
+      author: userId,
       designsPage: 0,
       viewsPage: 0,
     }));
@@ -160,11 +160,11 @@ const SharedContent = () => {
               endAdornment={
                 filters.type === RESOURCE_TYPE.DESIGN ? (
                   <p style={{ color: theme.palette.text.default, paddingLeft: '0.25rem' }}>
-                    Total: {designsData?.total_count ?? 0}
+                    Total: {designsData?.totalCount ?? 0}
                   </p>
                 ) : (
                   <p style={{ color: theme.palette.text.default, paddingLeft: '0.25rem' }}>
-                    Total: {viewsData?.total_count ?? 0}
+                    Total: {viewsData?.totalCount ?? 0}
                   </p>
                 )
               }
@@ -225,9 +225,9 @@ const SharedContent = () => {
               isFetching={isFetching}
               designs={designsData?.patterns}
               hasMore={
-                designsData?.total_count > (filters.designsPage + 1) * designsData?.page_size
+                designsData?.totalCount > (filters.designsPage + 1) * designsData?.pageSize
               }
-              total_count={designsData?.total_count}
+              totalCount={designsData?.totalCount}
               refetch={refetch}
             />
           )}
@@ -239,8 +239,8 @@ const SharedContent = () => {
               isLoading={isViewLoading}
               isFetching={isViewFetching}
               views={viewsData?.views}
-              hasMore={viewsData?.total_count > viewsData?.page_size * (viewsData?.page + 1)}
-              total_count={viewsData?.total_count}
+              hasMore={viewsData?.totalCount > viewsData?.pageSize * (viewsData?.page + 1)}
+              totalCount={viewsData?.totalCount}
               refetch={refetch}
             />
           )}
