@@ -181,7 +181,7 @@ server: dep-check
 	PROVIDER_BASE_URLS=$(MESHERY_CLOUD_PROD) \
 	PORT=$(PORT) \
 	DEBUG=true \
-	USE_GO_POLICY_ENGINE=true \
+	USE_GO_POLICY_ENGINE=$(USE_GO_POLICY_ENGINE) \
 	OTEL_CONFIG=$(OTEL_CONFIG) \
 	PROVIDER_CAPABILITIES_FILEPATH=$(PROVIDER_CAPABILITIES_FILEPATH) \
 	APP_PATH=$(APPLICATIONCONFIGPATH) \
@@ -475,11 +475,7 @@ helm-meshery-lint:
 #-----------------------------------------------------------------------------
 # Meshery APIs
 #-----------------------------------------------------------------------------
-.PHONY: graphql-docs-build graphql-build
-
-## Build Meshery GraphQL API documentation
-graphql-docs-build:
-	cd docs; bundle exec rake graphql:compile_docs
+.PHONY: graphql-build
 
 ## Build Meshery GraphQl API specifications
 graphql-build: dep-check
