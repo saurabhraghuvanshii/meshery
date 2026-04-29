@@ -529,7 +529,7 @@ func processEvaluationResponse(registryManager *registry.RegistryManager, evalPa
 // subsequent request. Centralising the recovery here keeps the server
 // alive and lets the requesting client see a 500.
 //
-// Exported at package scope (rather than inlined as an anonymous goroutine)
+// Defined at package scope (rather than inlined as an anonymous goroutine)
 // so the panic path is unit-testable without standing up the full HTTP
 // handler dependency tree.
 func runRelationshipEvaluation(
