@@ -1,6 +1,6 @@
 ### END-TO-END TESTS
 
-- Testing started at: May 2nd 2026, 4:48:14 am
+- Testing started at: May 2nd 2026, 8:47:10 am
 
 **📦 Test Result Summary**
 
@@ -9,7 +9,7 @@
 - ⚠️ 0 flaked
 - ⏩ 7 skipped
 
-⌛ _Duration: 7 minutes and 36 seconds_
+⌛ _Duration: 7 minutes and 38 seconds_
 
 **Overall Result**: 👎 Some tests failed.
 
@@ -482,20 +482,6 @@ Received: [31mfalse[39m
 </details>
 
 <details>
-<summary>❌ Import a Model via File Import (Meshery - chromium-meshery-provider)</summary>
-
-**File Location:** `Not Found`
-
-**Error Message:**
-```
-[31mTest timeout of 60000ms exceeded.[39m
-```
-
-
-
-</details>
-
-<details>
 <summary>❌ alias resolution (Meshery - chromium-meshery-provider)</summary>
 
 **File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/relationship_evaluation_properties.spec.js`
@@ -542,6 +528,20 @@ Received: [31mfalse[39m
  [90m 68 |[39m
  [90m 69 |[39m       [36mconst[39m actualRelationships [33m=[39m responseBody[33m.[39mdesign[33m.[39mrelationships [33m||[39m [][33m;[39m[0m
 ```
+
+</details>
+
+<details>
+<summary>❌ Import a Model via File Import (Meshery - chromium-meshery-provider)</summary>
+
+**File Location:** `Not Found`
+
+**Error Message:**
+```
+[31mTest timeout of 60000ms exceeded.[39m
+```
+
+
 
 </details>
 
@@ -921,31 +921,6 @@ Received: [31mfalse[39m
 </details>
 
 <details>
-<summary>❌ should identify relationships for Container-Hierarchical-Parent-Alias-Relationship (None - chromium-local-provider)</summary>
-
-**File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/relationship_evaluation.spec.js`
-
-**Error Message:**
-```
-Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
-
-Received: [31mfalse[39m
-```
-
-**Code Snippet:**
-```
-[0m [90m 64 |[39m       )[33m;[39m
- [90m 65 |[39m
-[31m[1m>[22m[39m[90m 66 |[39m       expect(response[33m.[39mok())[33m.[39mtoBeTruthy()[33m;[39m
- [90m    |[39m                             [31m[1m^[22m[39m
- [90m 67 |[39m       [36mconst[39m responseBody [33m=[39m [36mawait[39m response[33m.[39mjson()[33m;[39m
- [90m 68 |[39m
- [90m 69 |[39m       [36mconst[39m actualRelationships [33m=[39m responseBody[33m.[39mdesign[33m.[39mrelationships [33m||[39m [][33m;[39m[0m
-```
-
-</details>
-
-<details>
 <summary>❌ structural integrity (None - chromium-local-provider)</summary>
 
 **File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/relationship_evaluation_properties.spec.js`
@@ -966,6 +941,31 @@ Received: [31mfalse[39m
  [90m 129 |[39m   [36mreturn[39m resp[33m.[39mjson()[33m;[39m
  [90m 130 |[39m }
  [90m 131 |[39m[0m
+```
+
+</details>
+
+<details>
+<summary>❌ should identify relationships for Container-Hierarchical-Parent-Alias-Relationship (None - chromium-local-provider)</summary>
+
+**File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/relationship_evaluation.spec.js`
+
+**Error Message:**
+```
+Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+Received: [31mfalse[39m
+```
+
+**Code Snippet:**
+```
+[0m [90m 64 |[39m       )[33m;[39m
+ [90m 65 |[39m
+[31m[1m>[22m[39m[90m 66 |[39m       expect(response[33m.[39mok())[33m.[39mtoBeTruthy()[33m;[39m
+ [90m    |[39m                             [31m[1m^[22m[39m
+ [90m 67 |[39m       [36mconst[39m responseBody [33m=[39m [36mawait[39m response[33m.[39mjson()[33m;[39m
+ [90m 68 |[39m
+ [90m 69 |[39m       [36mconst[39m actualRelationships [33m=[39m responseBody[33m.[39mdesign[33m.[39mrelationships [33m||[39m [][33m;[39m[0m
 ```
 
 </details>
@@ -1021,31 +1021,6 @@ Received: [31mfalse[39m
 </details>
 
 <details>
-<summary>❌ should identify relationships for Service-To-Deployment-Network (None - chromium-local-provider)</summary>
-
-**File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/relationship_evaluation.spec.js`
-
-**Error Message:**
-```
-Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
-
-Received: [31mfalse[39m
-```
-
-**Code Snippet:**
-```
-[0m [90m 64 |[39m       )[33m;[39m
- [90m 65 |[39m
-[31m[1m>[22m[39m[90m 66 |[39m       expect(response[33m.[39mok())[33m.[39mtoBeTruthy()[33m;[39m
- [90m    |[39m                             [31m[1m^[22m[39m
- [90m 67 |[39m       [36mconst[39m responseBody [33m=[39m [36mawait[39m response[33m.[39mjson()[33m;[39m
- [90m 68 |[39m
- [90m 69 |[39m       [36mconst[39m actualRelationships [33m=[39m responseBody[33m.[39mdesign[33m.[39mrelationships [33m||[39m [][33m;[39m[0m
-```
-
-</details>
-
-<details>
 <summary>❌ config patching correctness (None - chromium-local-provider)</summary>
 
 **File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/relationship_evaluation_properties.spec.js`
@@ -1066,6 +1041,31 @@ Received: [31mfalse[39m
  [90m 129 |[39m   [36mreturn[39m resp[33m.[39mjson()[33m;[39m
  [90m 130 |[39m }
  [90m 131 |[39m[0m
+```
+
+</details>
+
+<details>
+<summary>❌ should identify relationships for Service-To-Deployment-Network (None - chromium-local-provider)</summary>
+
+**File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/relationship_evaluation.spec.js`
+
+**Error Message:**
+```
+Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+Received: [31mfalse[39m
+```
+
+**Code Snippet:**
+```
+[0m [90m 64 |[39m       )[33m;[39m
+ [90m 65 |[39m
+[31m[1m>[22m[39m[90m 66 |[39m       expect(response[33m.[39mok())[33m.[39mtoBeTruthy()[33m;[39m
+ [90m    |[39m                             [31m[1m^[22m[39m
+ [90m 67 |[39m       [36mconst[39m responseBody [33m=[39m [36mawait[39m response[33m.[39mjson()[33m;[39m
+ [90m 68 |[39m
+ [90m 69 |[39m       [36mconst[39m actualRelationships [33m=[39m responseBody[33m.[39mdesign[33m.[39mrelationships [33m||[39m [][33m;[39m[0m
 ```
 
 </details>
