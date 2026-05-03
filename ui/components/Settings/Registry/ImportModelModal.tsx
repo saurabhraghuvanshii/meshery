@@ -238,7 +238,10 @@ const ImportModelModal = React.memo(
               // a widget for `file`, which falls back to TextWidget — leaving
               // the form without a real <input type="file"> element to upload
               // through and breaking the File Import flow (and its e2e test).
-              uiSchema={{ ...importModelUiSchema, file: { 'ui:widget': 'file' } }}
+              uiSchema={{
+                ...importModelUiSchema,
+                file: { ...importModelUiSchema?.file, 'ui:widget': 'file' },
+              }}
               handleSubmit={handleImportModelSubmit}
               handleNext={handleNext}
               submitBtnText="Next"
