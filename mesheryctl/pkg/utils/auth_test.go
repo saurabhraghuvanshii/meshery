@@ -66,7 +66,7 @@ func TestAuth(t *testing.T) {
 }
 
 func TestProviderUnmarshalJSON(t *testing.T) {
-	t.Run("accepts canonical camelCase provider fields", func(t *testing.T) {
+	t.Run("Given canonical camelCase provider fields, When unmarshaled, Then it populates Provider correctly", func(t *testing.T) {
 		payload := []byte(`{"providerUrl":"https://cloud.layer5.io","providerName":"Layer5"}`)
 		provider := Provider{}
 
@@ -82,7 +82,7 @@ func TestProviderUnmarshalJSON(t *testing.T) {
 		}
 	})
 
-	t.Run("accepts legacy snake_case provider fields", func(t *testing.T) {
+	t.Run("Given legacy snake_case provider fields, When unmarshaled, Then it populates Provider correctly", func(t *testing.T) {
 		payload := []byte(`{"provider_url":"https://cloud.layer5.io","provider_name":"Layer5"}`)
 		provider := Provider{}
 

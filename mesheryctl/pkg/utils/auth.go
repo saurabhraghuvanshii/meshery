@@ -35,7 +35,7 @@ func (p *Provider) UnmarshalJSON(data []byte) error {
 	}{}
 
 	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
+		return ErrUnmarshal(err)
 	}
 
 	p.ProviderURL = aux.ProviderURL
