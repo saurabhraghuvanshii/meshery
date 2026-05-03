@@ -96,7 +96,7 @@ type MesheryUICapabilities struct {
 }
 
 type RestrictedAccess struct {
-	IsMesheryUIRestricted bool                  `json:"isMesheryUiRestricted"`
+	IsMesheryUIRestricted bool                  `json:"isMesheryUIRestricted"`
 	AllowedComponents     MesheryUICapabilities `json:"allowedComponents,omitempty"`
 }
 
