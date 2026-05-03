@@ -2,11 +2,10 @@
 name: First Time Contributor
 description: Welcomes first-time contributors to Meshery by posting a warm welcome comment and adding the first-time-contributor label to their pull request
 on:
-  pull_request:
+  pull_request_target:
     types: [opened]
-    forks: ["*"]
   roles: all
-if: github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+if: github.repository == 'meshery/meshery' && github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
 permissions:
   contents: read
   pull-requests: read
