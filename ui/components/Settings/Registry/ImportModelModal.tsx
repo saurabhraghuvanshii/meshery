@@ -233,15 +233,7 @@ const ImportModelModal = React.memo(
           {activeStep === 0 ? (
             <RJSFModalWrapper
               schema={importModelSchema}
-              // Force the conditional `file` field to render as a file input
-              // (RJSF FileWidget). The upstream sistent uiSchema does not set
-              // a widget for `file`, which falls back to TextWidget — leaving
-              // the form without a real <input type="file"> element to upload
-              // through and breaking the File Import flow (and its e2e test).
-              uiSchema={{
-                ...importModelUiSchema,
-                file: { ...importModelUiSchema?.file, 'ui:widget': 'file' },
-              }}
+              uiSchema={importModelUiSchema}
               handleSubmit={handleImportModelSubmit}
               handleNext={handleNext}
               submitBtnText="Next"
