@@ -1,6 +1,6 @@
 ### END-TO-END TESTS
 
-- Testing started at: May 3rd 2026, 5:54:31 pm
+- Testing started at: May 3rd 2026, 6:10:33 pm
 
 **📦 Test Result Summary**
 
@@ -9,7 +9,7 @@
 - ⚠️ 0 flaked
 - ⏩ 7 skipped
 
-⌛ _Duration: 5 minutes and 36 seconds_
+⌛ _Duration: 7 minutes and 4 seconds_
 
 **Overall Result**: 👎 Some tests failed.
 
