@@ -8,8 +8,9 @@ import 'billboard.js/dist/theme/dark.min.css';
 import _ from 'lodash';
 import Head from 'next/head';
 import { SnackbarProvider } from 'notistack';
-import React, { useEffect, useMemo, useCallback, useState } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { startSessionTimer } from '../lib/sessionTimer';
 import Header from '../components/Header';
 import MesheryProgressBar from '../components/MesheryProgressBar';
 import getPageContext from '../components/PageContext';
@@ -99,10 +100,10 @@ import { DynamicFullScreenLoader } from '@/components/LoadingComponents/DynamicF
 import SessionAuthModals from '@/components/General/SessionAuthModals';
 
 export const mesheryExtensionRoute = '/extension/meshmap';
-function isMesheryUiRestrictedAndThePageIsNotPlayground(capabilitiesRegistry) {
+function isMesheryUIRestrictedAndThePageIsNotPlayground(capabilitiesRegistry) {
   return (
     !window.location.pathname.startsWith(mesheryExtensionRoute) &&
-    capabilitiesRegistry?.restrictedAccess?.isMesheryUiRestricted
+    capabilitiesRegistry?.restrictedAccess?.isMesheryUIRestricted
   );
 }
 
@@ -140,6 +141,14 @@ const MesheryApp = ({ Component, pageProps, relayEnvironment, emotionCache }) =>
     abilities: [],
     abilityUpdated: false,
   });
+
+  // Mirror the dispose callback into a ref so the bootstrap effect's cleanup
+  // can call the latest value rather than the (always-null) initial-mount
+  // closure of `state.disposeK8sContextSubscription`.
+  const disposeK8sContextSubscriptionRef = useRef<null | (() => void)>(null);
+  useEffect(() => {
+    disposeK8sContextSubscriptionRef.current = state.disposeK8sContextSubscription;
+  }, [state.disposeK8sContextSubscription]);
 
   const setAppState = useCallback((partialState, callback) => {
     setState((prevState) => {
@@ -425,7 +434,6 @@ const MesheryApp = ({ Component, pageProps, relayEnvironment, emotionCache }) =>
   }, [dispatch, fetchSystemSync]);
 
   useEffect(() => {
-    const { startSessionTimer } = require('../lib/sessionTimer');
     startSessionTimer();
 
     const loadAll = async () => {
@@ -457,9 +465,7 @@ const MesheryApp = ({ Component, pageProps, relayEnvironment, emotionCache }) =>
 
     return () => {
       document.removeEventListener('fullscreenchange', fullScreenChanged);
-      if (state.disposeK8sContextSubscription) {
-        state.disposeK8sContextSubscription();
-      }
+      disposeK8sContextSubscriptionRef.current?.();
     };
   }, []);
 
@@ -468,7 +474,7 @@ const MesheryApp = ({ Component, pageProps, relayEnvironment, emotionCache }) =>
     // in case the meshery-ui is restricted, the user will be redirected to signup/extension page
     if (
       typeof window !== 'undefined' &&
-      isMesheryUiRestrictedAndThePageIsNotPlayground(capabilitiesRegistry)
+      isMesheryUIRestrictedAndThePageIsNotPlayground(capabilitiesRegistry)
     ) {
       Router.push(mesheryExtensionRoute);
     }
