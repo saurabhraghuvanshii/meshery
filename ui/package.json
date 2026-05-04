@@ -50,6 +50,7 @@
     "@microlink/react-json-view": "^1.31.20",
     "@mui/icons-material": "^9.0.0",
     "@mui/material": "^9.0.0",
+    "@mui/system": "^9.0.0",
     "@mui/x-date-pickers": "^9.0.4",
     "@mui/x-tree-view": "^9.0.4",
     "@open-policy-agent/opa-wasm": "^1.10.0",
@@ -156,6 +157,6 @@
     "webpack-cli": "^7.0.2"
   },
   "engines": {
-    "node": "^20.19.0 || ^22.13.0 || >=24"
+    "node": "^22.13.0 || >=24"
   }
 }
