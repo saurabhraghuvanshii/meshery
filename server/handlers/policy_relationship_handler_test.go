@@ -9,9 +9,10 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/meshery/meshkit/database"
 	"github.com/meshery/meshkit/models/meshmodel/registry"
-	"github.com/meshery/schemas/models/v1beta1/connection"
+	"github.com/meshery/schemas/models/core"
 	"github.com/meshery/schemas/models/v1beta1/category"
 	"github.com/meshery/schemas/models/v1beta1/component"
+	"github.com/meshery/schemas/models/v1beta1/connection"
 	"github.com/meshery/schemas/models/v1beta1/model"
 	"github.com/meshery/schemas/models/v1beta1/pattern"
 	"github.com/meshery/schemas/models/v1beta2/relationship"
@@ -168,8 +169,7 @@ func TestRunRelationshipEvaluation_PassesThroughEvalError(t *testing.T) {
 // seedTestComponent registers a v1beta3.ComponentDefinition into the given
 // RegistryManager using the registry's own RegisterEntity API — no raw SQL.
 // The returned component has Kind/Version matching the evalResp fixture so
-// that ComponentFilter.Get finds it and returns *v1beta3.ComponentDefinition,
-// which triggers the *v1beta1.ComponentDefinition type-assertion failure.
+// that ComponentFilter.Get finds it and returns the canonical registry type.
 func seedTestComponent(t *testing.T, rm *registry.RegistryManager) {
 	t.Helper()
 	conn := connection.Connection{
@@ -180,6 +180,8 @@ func seedTestComponent(t *testing.T, rm *registry.RegistryManager) {
 		Status:  connection.ConnectionStatusConnected,
 	}
 	enabled := v1beta3comp.Enabled
+	bgColor := "#123456"
+	shape := core.Shape("round-rectangle")
 	comp := v1beta3comp.ComponentDefinition{
 		DisplayName:   "Job",
 		SchemaVersion: "core.meshery.io/v1beta1",
@@ -198,6 +200,11 @@ func seedTestComponent(t *testing.T, rm *registry.RegistryManager) {
 			Category:      category.CategoryDefinition{Name: "Orchestration"},
 			Status:        model.Enabled,
 		},
+		Styles: &core.ComponentStyles{
+			BackgroundColor: &bgColor,
+			PrimaryColor:    "#123456",
+			Shape:           &shape,
+		},
 	}
 	id, err := comp.GenerateID()
 	require.NoError(t, err)
@@ -208,10 +215,10 @@ func seedTestComponent(t *testing.T, rm *registry.RegistryManager) {
 
 // Regression test for #18915: nil pointer dereference in processEvaluationResponse.
 //
-// Root cause: ComponentFilter.Get (meshkit v1beta1 filter package) returns
-// *v1beta3.ComponentDefinition, but the handler asserts *v1beta1.ComponentDefinition.
-// Without the guard the assertion silently returns nil=(*v1beta1.ComponentDefinition)(nil)
-// and the next dereference causes a SIGSEGV.
+// Original root cause: ComponentFilter.Get (meshkit v1beta1 filter package)
+// returns *v1beta3.ComponentDefinition, while this handler works with
+// v1beta1 evaluation payloads. The conversion must be explicit so the handler
+// neither panics nor treats valid registry-backed components as unknown.
 //
 // Real production panic (guard absent):
 //
@@ -251,19 +258,60 @@ func TestProcessEvaluationResponse_NilPointerGuard(t *testing.T) {
 		assert.Equal(t, "Job", got[0].Component.Kind)
 	})
 
-	t.Run("type assertion failure routes to unknownComponents", func(t *testing.T) {
+	t.Run("v1beta3 registry component hydrates v1beta1 evaluation response", func(t *testing.T) {
 		t.Parallel()
-		// !ok guard: registry returns *v1beta3.ComponentDefinition (the real production
-		// type), which fails the *v1beta1.ComponentDefinition assertion in the handler.
-		// Without the guard this is the exact path that caused the production SIGSEGV.
 		rm, _ := newTestRegistryManager(t)
-		seedTestComponent(t, rm) // seeds via RegisterEntity — no raw SQL
+		seedTestComponent(t, rm)
+		id, err := uuid.NewV4()
+		require.NoError(t, err)
+		position := &struct {
+			X float64 `json:"x" yaml:"x"`
+			Y float64 `json:"y" yaml:"y"`
+		}{X: 10, Y: 20}
+		partial := &component.ComponentDefinition{
+			ID:             id,
+			Component:      component.Component{Kind: "Job", Version: "batch/v1"},
+			DisplayName:    "test-job",
+			ModelReference: model.ModelReference{Name: "kubernetes"},
+			Styles:         &core.ComponentStyles{Position: position},
+		}
+		resp := &pattern.EvaluationResponse{
+			Design: pattern.PatternFile{
+				Version:    "0.0.1",
+				Components: []*component.ComponentDefinition{partial},
+			},
+			Trace: pattern.Trace{
+				ComponentsAdded: []component.ComponentDefinition{*partial},
+			},
+			Actions: []pattern.Action{
+				{
+					Op: "add_component",
+					Value: map[string]interface{}{
+						"item": map[string]interface{}{
+							"id": id.String(),
+						},
+					},
+				},
+			},
+		}
 		var got []*component.ComponentDefinition
 		require.NotPanics(t, func() {
-			got = processEvaluationResponse(rm, pattern.EvaluationRequest{}, makeResp("test-job"))
-		}, "must not panic when type assertion on registry entity fails")
-		require.Len(t, got, 1)
-		assert.Equal(t, "Job", got[0].Component.Kind)
+			got = processEvaluationResponse(rm, pattern.EvaluationRequest{}, resp)
+		}, "must not panic when registry returns canonical v1beta3 components")
+		require.Empty(t, got)
+		require.Len(t, resp.Design.Components, 1)
+		require.NotNil(t, resp.Design.Components[0].Styles)
+		require.NotNil(t, resp.Design.Components[0].Styles.BackgroundColor)
+		assert.Equal(t, "#123456", *resp.Design.Components[0].Styles.BackgroundColor)
+		require.NotNil(t, resp.Design.Components[0].Styles.Position)
+		assert.Equal(t, float64(10), resp.Design.Components[0].Styles.Position.X)
+		assert.Equal(t, float64(20), resp.Design.Components[0].Styles.Position.Y)
+		require.Len(t, resp.Actions, 1)
+		item, ok := resp.Actions[0].Value["item"].(map[string]interface{})
+		require.True(t, ok)
+		styles, ok := item["styles"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "#123456", styles["background-color"])
 	})
 
 	t.Run("explicit DisplayName is preserved on unknown component", func(t *testing.T) {
@@ -335,6 +383,36 @@ func TestProcessEvaluationResponse_NilPointerGuard(t *testing.T) {
 		require.Len(t, got, 1)
 		assert.True(t, got[0].Metadata.IsAnnotation)
 	})
+}
+
+func TestProcessEvaluationResponse_HydratesWildcardModelEntries(t *testing.T) {
+	t.Parallel()
+
+	rm, _ := newTestRegistryManager(t)
+	seedTestComponent(t, rm)
+
+	resp := &pattern.EvaluationResponse{
+		Design: pattern.PatternFile{Version: "0.0.1"},
+		Trace: pattern.Trace{
+			ComponentsAdded: []component.ComponentDefinition{
+				{
+					Component: component.Component{Kind: "Job", Version: "batch/v1"},
+					Model: &model.ModelDefinition{
+						Name:    "*",
+						Version: "v1.25.0",
+						Model:   model.Model{Version: "v1.25.0"},
+					},
+				},
+			},
+		},
+	}
+
+	got := processEvaluationResponse(rm, pattern.EvaluationRequest{}, resp)
+	require.Empty(t, got, "wildcard model should resolve to a registry entity, not unknownComponents")
+	require.Len(t, resp.Trace.ComponentsAdded, 1)
+	require.NotNil(t, resp.Trace.ComponentsAdded[0].Styles)
+	require.NotNil(t, resp.Trace.ComponentsAdded[0].Styles.BackgroundColor)
+	assert.Equal(t, "#123456", *resp.Trace.ComponentsAdded[0].Styles.BackgroundColor)
 }
 
 func TestParseRelationshipToAlias(t *testing.T) {

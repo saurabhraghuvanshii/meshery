@@ -438,18 +438,22 @@ func processEvaluationResponse(reg *registry.RegistryManager, evalPayload patter
 		} else {
 			compFilter.ModelName = _c.ModelReference.Name
 		}
+		if compFilter.ModelName == "*" {
+			compFilter.ModelName = ""
+		}
 
 		entities, _, _, _ := reg.GetEntitiesMemoized(compFilter, registryCache)
 		if len(entities) == 0 {
 			unknownComponents = append(unknownComponents, &_c)
 			continue
 		}
-		_component, ok := entities[0].(*component.ComponentDefinition)
-		if !ok || _component == nil {
+		_component, ok := registryComponentDefinitionToV1beta1(entities[0])
+		if !ok {
 			unknownComponents = append(unknownComponents, &_c)
 			continue
 		}
 
+		originalStyles := _c.Styles
 		_component.ID = _c.ID
 		if _c.DisplayName != "" {
 			_component.DisplayName = _c.DisplayName
@@ -461,6 +465,12 @@ func processEvaluationResponse(reg *registry.RegistryManager, evalPayload patter
 		_component.Metadata.IsAnnotation = _c.Metadata.IsAnnotation
 		_component.Configuration = _c.Configuration
 		_component.Capabilities = &defaultCapabilities
+		if originalStyles != nil && originalStyles.Position != nil {
+			if _component.Styles == nil {
+				_component.Styles = &core.ComponentStyles{}
+			}
+			_component.Styles.Position = originalStyles.Position
+		}
 		compsAdded = append(compsAdded, *_component)
 	}
 
@@ -474,6 +484,7 @@ func processEvaluationResponse(reg *registry.RegistryManager, evalPayload patter
 	evalResponse.Trace.ComponentsUpdated = compsUpdated
 
 	cmps := append(compsAdded, compsUpdated...)
+	hydrateAddComponentActions(evalResponse.Actions, compsAdded)
 
 	if evalPayload.Options != nil && evalPayload.Options.ReturnDiffOnly != nil && *evalPayload.Options.ReturnDiffOnly {
 		evalResponse.Design.Relationships = []*relationship.RelationshipDefinition{}
@@ -517,6 +528,89 @@ func processEvaluationResponse(reg *registry.RegistryManager, evalPayload patter
 	}
 
 	return unknownComponents
+}
+
+func hydrateAddComponentActions(actions []pattern.Action, compsAdded []component.ComponentDefinition) {
+	if len(actions) == 0 || len(compsAdded) == 0 {
+		return
+	}
+
+	componentsByID := map[string]component.ComponentDefinition{}
+	for _, comp := range compsAdded {
+		componentsByID[comp.ID.String()] = comp
+	}
+	actionItemsByID := map[string]map[string]interface{}{}
+
+	for idx := range actions {
+		if actions[idx].Op != "add_component" {
+			continue
+		}
+		id := actionItemID(actions[idx])
+		if id == "" {
+			continue
+		}
+		comp, ok := componentsByID[id]
+		if !ok {
+			continue
+		}
+		item, ok := actionItemsByID[id]
+		if !ok {
+			item, ok = componentDefinitionToMap(&comp)
+			if !ok {
+				continue
+			}
+			actionItemsByID[id] = item
+		}
+		if actions[idx].Value == nil {
+			actions[idx].Value = map[string]interface{}{}
+		}
+		actions[idx].Value["item"] = item
+	}
+}
+
+func actionItemID(action pattern.Action) string {
+	if action.Value == nil {
+		return ""
+	}
+	item, ok := action.Value["item"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	id, ok := item["id"].(string)
+	if !ok {
+		return ""
+	}
+	return id
+}
+
+func componentDefinitionToMap(comp *component.ComponentDefinition) (map[string]interface{}, bool) {
+	raw, err := json.Marshal(comp)
+	if err != nil {
+		return nil, false
+	}
+	var item map[string]interface{}
+	if err := json.Unmarshal(raw, &item); err != nil {
+		return nil, false
+	}
+	return item, true
+}
+
+func registryComponentDefinitionToV1beta1(entity interface{}) (*component.ComponentDefinition, bool) {
+	if entity == nil {
+		return nil, false
+	}
+	raw, err := json.Marshal(entity)
+	if err != nil {
+		return nil, false
+	}
+	var converted component.ComponentDefinition
+	if err := json.Unmarshal(raw, &converted); err != nil {
+		return nil, false
+	}
+	if converted.Component.Kind == "" {
+		return nil, false
+	}
+	return &converted, true
 }
 
 // runRelationshipEvaluation runs eval behind a panic-recovery boundary and
