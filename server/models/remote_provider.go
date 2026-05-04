@@ -28,13 +28,14 @@ import (
 	SMP "github.com/layer5io/service-mesh-performance/spec"
 	servercore "github.com/meshery/meshery/server/core"
 	"github.com/meshery/meshery/server/models/connections"
+	"github.com/meshery/meshery/server/models/httputil"
 	"github.com/meshery/meshkit/database"
 	"github.com/meshery/meshkit/encoding"
 	"github.com/meshery/meshkit/logger"
 	"github.com/meshery/meshkit/models/events"
 	mesherykube "github.com/meshery/meshkit/utils/kubernetes"
 	"github.com/meshery/schemas/models/v1beta1/environment"
-	"github.com/meshery/schemas/models/v1beta1/workspace"
+	workspace "github.com/meshery/schemas/models/v1beta3/workspace"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/util/homedir"
 )
@@ -61,6 +62,14 @@ type RemoteProvider struct {
 	TokenStoreMut sync.Mutex
 	Keys          []map[string]string
 
+	// mostRecentToken caches the last valid user token observed during the
+	// session so it can be reused at server shutdown to authenticate the
+	// deregistration call (DeleteMesheryConnection) and the subsequent token
+	// revocation. The anonymous global token is rejected by the remote
+	// provider for these privileged operations.
+	mostRecentToken    string
+	mostRecentTokenMut sync.RWMutex
+
 	LoginCookieDuration time.Duration
 
 	// provider and token cookie expiry bound
@@ -78,8 +87,8 @@ type RemoteProvider struct {
 	MeshsyncDefaultDeploymentMode connections.MeshsyncDeploymentMode
 }
 type AnonymousFlowResponse struct {
-	AccessToken string    `json:"access_token"`
-	UserID      core.Uuid `json:"user_id,omitempty"`
+	AccessToken string    `json:"accessToken"`
+	UserID      core.Uuid `json:"userId,omitempty"`
 }
 
 type userSession struct {
@@ -327,7 +336,7 @@ func (l *RemoteProvider) GetProviderCapabilities(w http.ResponseWriter, req *htt
 
 	if err != nil {
 		l.Log.Error(fmt.Errorf("[RemoteProvider.GetProviderCapabilities] failed to load capabilities from remote provider: %v", err))
-		http.Error(w, fmt.Sprintf("failed to load capabilities from remote provider: %v", err), http.StatusInternalServerError)
+		httputil.WriteMeshkitError(w, ErrRemoteProviderCapabilities(err), http.StatusInternalServerError)
 		return
 	}
 
@@ -336,9 +345,17 @@ func (l *RemoteProvider) GetProviderCapabilities(w http.ResponseWriter, req *htt
 		l.Log.Error(ErrDBPut(errors.Join(err, fmt.Errorf("failed to write capabilities for the user %s to the server store", userID))))
 	}
 
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(providerProperties); err != nil {
-		http.Error(w, ErrEncoding(err, "Provider Capablity").Error(), http.StatusInternalServerError)
+	// Encode into a buffer first so that headers are not committed before we
+	// know whether encoding succeeded; this prevents a second JSON object from
+	// being appended to an already-started 200 response on encode failure.
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(providerProperties); err != nil {
+		httputil.WriteMeshkitError(w, ErrEncoding(err, "Provider Capability"), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := buf.WriteTo(w); err != nil {
+		l.Log.Error(ErrEncoding(err, "Provider Capability"))
 	}
 }
 
@@ -902,7 +919,11 @@ func (l *RemoteProvider) HandleUnAuthenticated(w http.ResponseWriter, req *http.
 		l.UnSetJWTCookie(w)
 		l.UnSetProviderSessionCookie(w)
 		ClearAuthRetryCookie(w)
-		http.Error(w, "Authentication failed after multiple attempts. Please clear your browser cookies for this site and try again.", http.StatusUnauthorized)
+		httputil.WriteMeshkitError(
+			w,
+			ErrRemoteProviderAuthExhausted(fmt.Errorf("please clear your browser cookies for this site and try again")),
+			http.StatusUnauthorized,
+		)
 		return
 	}
 	SetAuthRetryCookie(w, retries+1)
@@ -931,13 +952,13 @@ func (l *RemoteProvider) SaveK8sContext(token string, k8sContext K8sContext, add
 	k8sServerID := *k8sContext.KubernetesServerID
 
 	_metadata := map[string]string{
-		"id":                   k8sContext.ID,
-		"server":               k8sContext.Server,
-		"meshery_instance_id":  k8sContext.MesheryInstanceID.String(),
-		"deployment_type":      k8sContext.DeploymentType,
-		"version":              k8sContext.Version,
-		"name":                 k8sContext.Name,
-		"kubernetes_server_id": k8sServerID.String(),
+		"id":                 k8sContext.ID,
+		"server":             k8sContext.Server,
+		"mesheryInstanceId":  k8sContext.MesheryInstanceID.String(),
+		"deploymentType":     k8sContext.DeploymentType,
+		"version":            k8sContext.Version,
+		"name":               k8sContext.Name,
+		"kubernetesServerId": k8sServerID.String(),
 	}
 	metadata := make(map[string]interface{}, len(_metadata)+len(additionalMetadata))
 	for k, v := range _metadata {
@@ -1011,8 +1032,8 @@ func (l *RemoteProvider) GetK8sContexts(token, page, pageSize, search, order str
 	if withStatus != "" {
 		q.Set("status", withStatus)
 	}
-	q.Set("with_credentials", strconv.FormatBool(withCredentials))
-	q.Set("meshery_instance_id", mi)
+	q.Set("withCredentials", strconv.FormatBool(withCredentials))
+	q.Set("mesheryInstanceId", mi)
 	remoteProviderURL.RawQuery = q.Encode()
 	cReq, _ := http.NewRequest(http.MethodGet, remoteProviderURL.String(), nil)
 
@@ -1655,10 +1676,10 @@ func (l *RemoteProvider) GetEvents(token string, eventsFilter *events.EventsFilt
 	type ProviderResp struct {
 		Data                 []*events.Event         `json:"data"`
 		Page                 int                     `json:"page"`
-		TotalCount           int64                   `json:"total_count"`
-		PageSize             int                     `json:"page_size"`
-		ReadCount            int64                   `json:"read_count"`
-		CountBySeverityLevel []*CountBySeverityLevel `json:"count_by_severity_level"`
+		TotalCount           int64                   `json:"totalCount"`
+		PageSize             int                     `json:"pageSize"`
+		ReadCount            int64                   `json:"readCount"`
+		CountBySeverityLevel []*CountBySeverityLevel `json:"countBySeverityLevel"`
 	}
 
 	response := &ProviderResp{}
@@ -3980,6 +4001,11 @@ func (l *RemoteProvider) TokenHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Clear the auth retry counter on successful token receipt
 	ClearAuthRetryCookie(w)
 
+	// Cache this token so DeleteMesheryConnection / shutdown logout can
+	// authenticate against the remote provider. Without this, shutdown
+	// uses the anonymous global token and the remote provider returns 401.
+	l.setMostRecentToken(tokenString)
+
 	// Get new capabilities
 	// Doing this here is important so that the latest capabilities are always fetched when a user logs in
 	providerProperties, err := l.loadCapabilities(tokenString)
@@ -3987,7 +4013,7 @@ func (l *RemoteProvider) TokenHandler(w http.ResponseWriter, r *http.Request, _ 
 	// error out if capabilities could not be fetched
 	if err != nil {
 		l.Log.Error(fmt.Errorf("[TokenHandler] error loading capabilities from remote provider: %v", err))
-		http.Error(w, "Error loading capabilities from remote provider", http.StatusInternalServerError)
+		httputil.WriteMeshkitError(w, ErrRemoteProviderCapabilities(err), http.StatusInternalServerError)
 		return
 	}
 
@@ -4088,10 +4114,19 @@ func (l *RemoteProvider) ExtractToken(w http.ResponseWriter, r *http.Request) {
 		TokenCookieName:    tokenString,
 	}
 	l.Log.Debug("token sent for meshery-provider ", l.Name())
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		err = ErrEncoding(err, "Auth Details")
+	// Encode into a buffer first so that headers are not committed before we
+	// know whether encoding succeeded; this prevents a second JSON object from
+	// being appended to an already-started 200 response on encode failure.
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(resp); err != nil {
+		errObj := ErrEncoding(err, "Auth Details")
+		l.Log.Error(errObj)
+		httputil.WriteMeshkitError(w, errObj, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := buf.WriteTo(w); err != nil {
 		l.Log.Error(ErrEncoding(err, "Auth Details"))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -4679,10 +4714,16 @@ func (l *RemoteProvider) DeleteMesheryConnection() error {
 	ep, _ := l.Capabilities.GetEndpointForFeature(PersistConnection)
 	remoteProviderURL, _ := url.Parse(fmt.Sprintf("%s%s/meshery/%s", l.RemoteProviderURL, ep, mesheryServerID))
 	cReq, _ := http.NewRequest(http.MethodDelete, remoteProviderURL.String(), nil)
-	cReq.Header.Set("X-API-Key", GlobalTokenForAnonymousResults)
-	cReq.Header.Set("SystemID", viper.GetString("INSTANCE_ID")) // Adds the system id to the header for event tracking
-	c := &http.Client{}
-	resp, err := c.Do(cReq)
+
+	// Prefer the cached user token captured at login over the anonymous
+	// global token; the remote provider rejects the latter (401) for
+	// privileged delete operations. DoRequest sets Authorization, X-API-Key,
+	// and SystemID headers, and transparently refreshes the token on 401.
+	token := l.getMostRecentToken()
+	if token == "" {
+		token = GlobalTokenForAnonymousResults
+	}
+	resp, err := l.DoRequest(cReq, token)
 	if err != nil {
 		if resp == nil {
 			return ErrUnreachableRemoteProvider(err)
@@ -4698,6 +4739,49 @@ func (l *RemoteProvider) DeleteMesheryConnection() error {
 	}
 
 	return ErrDelete(fmt.Errorf("could not delete meshery connection"), " Meshery Connection", resp.StatusCode)
+}
+
+// setMostRecentToken records the most recent valid user token. Used so that
+// shutdown-time operations (deregistration, logout) can authenticate against
+// the remote provider without an active HTTP request in scope.
+func (l *RemoteProvider) setMostRecentToken(token string) {
+	if strings.TrimSpace(token) == "" {
+		return
+	}
+	l.mostRecentTokenMut.Lock()
+	defer l.mostRecentTokenMut.Unlock()
+	l.mostRecentToken = token
+}
+
+func (l *RemoteProvider) getMostRecentToken() string {
+	l.mostRecentTokenMut.RLock()
+	defer l.mostRecentTokenMut.RUnlock()
+	return l.mostRecentToken
+}
+
+func (l *RemoteProvider) clearMostRecentToken() {
+	l.mostRecentTokenMut.Lock()
+	defer l.mostRecentTokenMut.Unlock()
+	l.mostRecentToken = ""
+}
+
+// LogoutMesheryServer performs a server-side logout against the remote
+// provider using the cached user token. Intended to be invoked at server
+// shutdown, *after* DeleteMesheryConnection, so that the session that
+// authorized the deregistration is then revoked. Unlike Logout, this does
+// not require an http.Request/ResponseWriter pair.
+func (l *RemoteProvider) LogoutMesheryServer() error {
+	token := l.getMostRecentToken()
+	if token == "" {
+		// nothing to revoke — user never logged in during this run
+		return nil
+	}
+	defer l.clearMostRecentToken()
+
+	if err := l.revokeToken(token); err != nil {
+		return ErrLogout(err)
+	}
+	return nil
 }
 
 // TarXZF takes in a source url downloads the tar.gz file
