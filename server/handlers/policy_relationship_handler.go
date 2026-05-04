@@ -439,9 +439,6 @@ func processEvaluationResponse(reg *registry.RegistryManager, evalPayload patter
 		} else {
 			compFilter.ModelName = _c.ModelReference.Name
 		}
-		if compFilter.ModelName == "*" {
-			compFilter.ModelName = ""
-		}
 
 		entities, _, _, _ := reg.GetEntitiesMemoized(compFilter, registryCache)
 		if len(entities) == 0 {

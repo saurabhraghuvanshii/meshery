@@ -385,36 +385,6 @@ func TestProcessEvaluationResponse_NilPointerGuard(t *testing.T) {
 	})
 }
 
-func TestProcessEvaluationResponse_HydratesWildcardModelEntries(t *testing.T) {
-	t.Parallel()
-
-	rm, _ := newTestRegistryManager(t)
-	seedTestComponent(t, rm)
-
-	resp := &pattern.EvaluationResponse{
-		Design: pattern.PatternFile{Version: "0.0.1"},
-		Trace: pattern.Trace{
-			ComponentsAdded: []component.ComponentDefinition{
-				{
-					Component: component.Component{Kind: "Job", Version: "batch/v1"},
-					Model: &model.ModelDefinition{
-						Name:    "*",
-						Version: "v1.25.0",
-						Model:   model.Model{Version: "v1.25.0"},
-					},
-				},
-			},
-		},
-	}
-
-	got := processEvaluationResponse(rm, pattern.EvaluationRequest{}, resp)
-	require.Empty(t, got, "wildcard model should resolve to a registry entity, not unknownComponents")
-	require.Len(t, resp.Trace.ComponentsAdded, 1)
-	require.NotNil(t, resp.Trace.ComponentsAdded[0].Styles)
-	require.NotNil(t, resp.Trace.ComponentsAdded[0].Styles.BackgroundColor)
-	assert.Equal(t, "#123456", *resp.Trace.ComponentsAdded[0].Styles.BackgroundColor)
-}
-
 // seedNamespaceComponent registers a second styled component (Namespace)
 // alongside the Job from seedTestComponent so multi-component hydration
 // scenarios have two distinct kinds with two distinct styles to
@@ -616,56 +586,6 @@ func TestProcessEvaluationResponse_HydratesMultipleAddedComponents(t *testing.T)
 	require.NotNil(t, byID[nsID].Styles)
 	require.NotNil(t, byID[nsID].Styles.BackgroundColor)
 	assert.Equal(t, "#326CE5", *byID[nsID].Styles.BackgroundColor, "Namespace must hydrate to its own colour")
-}
-
-// Position preservation under the wildcard-model code path. The bridge
-// subtest in TestProcessEvaluationResponse_NilPointerGuard already covers
-// position preservation under the canonical-model path; this test pins
-// the same guarantee for the second-root-cause path (ModelName == "*"
-// fallback) so a future regression on either path fails an explicit
-// assertion rather than silently dropping evaluator-emitted positions.
-func TestProcessEvaluationResponse_PreservesPositionAcrossWildcardHydration(t *testing.T) {
-	t.Parallel()
-
-	rm, _ := newTestRegistryManager(t)
-	seedTestComponent(t, rm) // Job in kubernetes model
-
-	id, err := uuid.NewV4()
-	require.NoError(t, err)
-	position := &struct {
-		X float64 `json:"x" yaml:"x"`
-		Y float64 `json:"y" yaml:"y"`
-	}{X: 42, Y: 84}
-
-	resp := &pattern.EvaluationResponse{
-		Design: pattern.PatternFile{Version: "0.0.1"},
-		Trace: pattern.Trace{
-			ComponentsAdded: []component.ComponentDefinition{
-				{
-					ID:        id,
-					Component: component.Component{Kind: "Job", Version: "batch/v1"},
-					// Wildcard model name as identify_additions.rego emits.
-					Model: &model.ModelDefinition{
-						Name:    "*",
-						Version: "v1.25.0",
-						Model:   model.Model{Version: "v1.25.0"},
-					},
-					// Evaluator-emitted position — must survive registry hydration.
-					Styles: &core.ComponentStyles{Position: position},
-				},
-			},
-		},
-	}
-
-	got := processEvaluationResponse(rm, pattern.EvaluationRequest{}, resp)
-	require.Empty(t, got)
-	require.Len(t, resp.Trace.ComponentsAdded, 1)
-	hydrated := resp.Trace.ComponentsAdded[0]
-	require.NotNil(t, hydrated.Styles, "registry styles must apply under wildcard fallback")
-	require.NotNil(t, hydrated.Styles.BackgroundColor, "registry BackgroundColor present after wildcard hydration")
-	require.NotNil(t, hydrated.Styles.Position, "evaluator-emitted Position must survive wildcard hydration")
-	assert.Equal(t, float64(42), hydrated.Styles.Position.X)
-	assert.Equal(t, float64(84), hydrated.Styles.Position.Y)
 }
 
 func TestParseRelationshipToAlias(t *testing.T) {
