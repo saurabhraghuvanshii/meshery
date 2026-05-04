@@ -387,7 +387,7 @@ func (h *Handler) handlePatternPOST(
 	}
 	description := fmt.Sprintf("Design %s saved at version %s", requestPayload.DesignFile.Name, requestPayload.DesignFile.Version)
 	metadata := map[string]interface{}{
-		"history_title": fmt.Sprintf("Version %s - %d components and %d relationships",
+		"historyTitle": fmt.Sprintf("Version %s - %d components and %d relationships",
 			requestPayload.DesignFile.Version, len(requestPayload.DesignFile.Components), len(requestPayload.DesignFile.Relationships)),
 
 		"design": map[string]interface{}{

@@ -808,10 +808,10 @@ func (h *Handler) EvaluateRelationshipPolicy(
 		description := fmt.Sprintf("Relationship evaluation complete: %d changes in '%s' at version '%s'", len(evaluationResponse.Actions), evaluationResponse.Design.Name, evaluationResponse.Design.Version)
 		event := eventBuilder.WithDescription(description).
 			WithMetadata(map[string]interface{}{
-				"history_title":       fmt.Sprintf("%d changes made at version %s", len(evaluationResponse.Actions), evaluationResponse.Design.Version),
-				"trace":               evaluationResponse.Trace,
-				"evaluation_response": evaluationResponse,
-				"evaluated_at":        *evaluationResponse.Timestamp,
+				"historyTitle":       fmt.Sprintf("%d changes made at version %s", len(evaluationResponse.Actions), evaluationResponse.Design.Version),
+				"trace":              evaluationResponse.Trace,
+				"evaluationResponse": evaluationResponse,
+				"evaluatedAt":        *evaluationResponse.Timestamp,
 			}).WithSeverity(events.Informational).Build()
 		go func() {
 			_ = provider.PersistEvent(*event, token)
