@@ -288,7 +288,7 @@ func (h *Handler) EvaluateDesign(
 	// meshkit's patternHelpers.HydratePattern is typed against
 	// v1beta3/design.PatternFile but this evaluation-engine carve-out
 	// still holds the design as v1beta1/pattern.PatternFile, so bridge
-	// via JSON round-trip and fold the hydrated fields back onto the
+	// via a typed shallow copy and fold the hydrated fields back onto the
 	// v1beta1 design before the policy passes run.
 	if bridged, bridgeErr := utils.PatternV1beta1ToV1beta3(&relationshipPolicyEvalPayload.Design); bridgeErr == nil && bridged != nil {
 		if hydrateErrs := patternHelpers.HydratePattern(bridged, h.registryManager); len(hydrateErrs) > 0 {
