@@ -60,7 +60,7 @@
     "@rjsf/mui": "^6.4.1",
     "@rjsf/utils": "^6.4.1",
     "@rjsf/validator-ajv8": "^6.4.1",
-    "@sistent/mui-datatables": "^6.1.1",
+    "@sistent/mui-datatables": "^7.1.0",
     "@sistent/sistent": "^0.20.0",
     "@tippyjs/react": "^4.2.6",
     "@uiw/codemirror-theme-material": "^4.25.8",
