@@ -21,6 +21,7 @@ import (
 	"github.com/meshery/schemas/models/v1beta1/component"
 	"github.com/meshery/schemas/models/v1beta1/pattern"
 	"github.com/meshery/schemas/models/v1beta2/relationship"
+	componentv1beta3 "github.com/meshery/schemas/models/v1beta3/component"
 
 	"github.com/meshery/meshkit/logger"
 	"github.com/meshery/meshkit/models/events"
@@ -595,22 +596,73 @@ func componentDefinitionToMap(comp *component.ComponentDefinition) (map[string]i
 	return item, true
 }
 
+// registryComponentDefinitionToV1beta1 bridges the v1beta3 ComponentDefinition
+// the meshkit registry returns into the v1beta1 ComponentDefinition that
+// pattern.PatternFile.Components is typed against. This handler — and every
+// caller of processEvaluationResponse — operates on v1beta1; v1beta3 is only
+// the registry's storage representation.
+//
+// Mechanism: a shallow field copy that keeps pointer- and reference-typed
+// inner fields (Model, Styles, Capabilities, Configuration,
+// Metadata.AdditionalProperties, ModelID) aliased across both versions, so
+// later in-place mutations meshkit helpers (e.g.
+// orchestration.EnrichComponentWithMesheryMetadata) might make through one
+// of those pointers remain visible from the v1beta1 view. This parallels
+// the existing models/pattern/utils.ComponentV1beta3ToV1beta2 bridge — same
+// pattern, different target version.
+//
+// Why not json.Marshal/json.Unmarshal: a JSON round-trip silently drops
+// fields whose tags differ across versions (already true today —
+// v1beta1 uses `json:"created_at,omitempty"` while v1beta3 uses
+// `json:"createdAt"`) and deep-clones the inner pointer targets, which
+// breaks the alias contract the existing bridge documents. Future tag
+// drift would compound the data loss with no compile-time signal.
 func registryComponentDefinitionToV1beta1(entity interface{}) (*component.ComponentDefinition, bool) {
 	if entity == nil {
 		return nil, false
 	}
-	raw, err := json.Marshal(entity)
-	if err != nil {
+	src, ok := entity.(*componentv1beta3.ComponentDefinition)
+	if !ok || src == nil {
 		return nil, false
 	}
-	var converted component.ComponentDefinition
-	if err := json.Unmarshal(raw, &converted); err != nil {
+	if src.Component.Kind == "" {
 		return nil, false
 	}
-	if converted.Component.Kind == "" {
-		return nil, false
+	dst := &component.ComponentDefinition{
+		ID:             src.ID,
+		SchemaVersion:  src.SchemaVersion,
+		Version:        src.Version,
+		DisplayName:    src.DisplayName,
+		Description:    src.Description,
+		Format:         component.ComponentDefinitionFormat(src.Format),
+		Model:          src.Model,
+		ModelReference: src.ModelReference,
+		Styles:         src.Styles,
+		Capabilities:   src.Capabilities,
+		Metadata: component.ComponentDefinition_Metadata{
+			Genealogy:             src.Metadata.Genealogy,
+			IsAnnotation:          src.Metadata.IsAnnotation,
+			IsNamespaced:          src.Metadata.IsNamespaced,
+			Published:             src.Metadata.Published,
+			InstanceDetails:       src.Metadata.InstanceDetails,
+			ConfigurationUISchema: src.Metadata.ConfigurationUISchema,
+			AdditionalProperties:  src.Metadata.AdditionalProperties,
+		},
+		Configuration: src.Configuration,
+		Component: component.Component{
+			Kind:    src.Component.Kind,
+			Version: src.Component.Version,
+			Schema:  src.Component.Schema,
+		},
+		CreatedAt: src.CreatedAt,
+		UpdatedAt: src.UpdatedAt,
+		ModelId:   src.ModelID,
 	}
-	return &converted, true
+	if src.Status != nil {
+		st := component.ComponentDefinitionStatus(*src.Status)
+		dst.Status = &st
+	}
+	return dst, true
 }
 
 // runRelationshipEvaluation runs eval behind a panic-recovery boundary and
