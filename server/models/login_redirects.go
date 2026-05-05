@@ -1,6 +1,8 @@
 package models
 
 import (
+	"encoding/base64"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -21,6 +23,38 @@ func resolvePostLoginRedirect(rawRef, fallback string) string {
 	}
 
 	return fallback
+}
+
+// selectPostLoginRefValue returns the raw (encoded or plaintext) value to feed
+// into resolvePostLoginRedirect when the auth flow returns to TokenHandler.
+//
+// Meshery is the source of truth for its own post-login destination: the value
+// is captured into a cookie at InitiateLogin time and read back here. The
+// ?ref= query param is a fallback for callers that never went through
+// InitiateLogin (mesheryctl, direct extension callbacks) and for older
+// provider deployments that still echo a ref back to us. We deliberately do
+// not try to merge the two — when the cookie is present it wins outright,
+// since stale provider-side state (e.g. a synthesized ref baked into Hydra
+// state during a custom-domain bounce) was the bug this routing change was
+// introduced to fix.
+func selectPostLoginRefValue(r *http.Request, cookieName string) string {
+	if ck, err := r.Cookie(cookieName); err == nil && ck.Value != "" {
+		return ck.Value
+	}
+	return r.URL.Query().Get("ref")
+}
+
+// computePostLoginRefValue returns the value to store in the post-login
+// redirect cookie at InitiateLogin time. An explicit ?ref= query param wins
+// (callers expressing intent override our default), otherwise we fall back to
+// the originally-requested in-app path encoded the same way as the legacy
+// query-string contract. The value is left to resolvePostLoginRedirect to
+// validate at read time, so this stays a pure string transform.
+func computePostLoginRefValue(refQueryParam, callbackURL, baseCallbackURL string) string {
+	if refQueryParam != "" {
+		return refQueryParam
+	}
+	return base64.RawURLEncoding.EncodeToString([]byte(strings.TrimPrefix(callbackURL, baseCallbackURL)))
 }
 
 // authInitiationPaths are server routes whose job is to *start* authentication.
