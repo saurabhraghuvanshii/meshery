@@ -94,38 +94,74 @@ func TestResolvePostLoginRedirect(t *testing.T) {
 func TestComputePostLoginRefValue(t *testing.T) {
 	t.Parallel()
 
-	const baseCallbackURL = "https://playground.meshery.io"
-
 	tests := []struct {
-		name           string
-		refQueryParam  string
-		callbackURL    string
-		expected       string
-		expectedDecode string
+		name            string
+		refQueryParam   string
+		callbackURL     string
+		baseCallbackURL string
+		expected        string
+		expectedDecode  string
 	}{
 		{
-			name:           "synthesizes from path when no query param",
-			callbackURL:    baseCallbackURL + "/extension/meshmap",
-			expected:       base64.RawURLEncoding.EncodeToString([]byte("/extension/meshmap")),
-			expectedDecode: "/extension/meshmap",
+			name:            "synthesizes from path when no query param",
+			callbackURL:     "https://playground.meshery.io/extension/meshmap",
+			baseCallbackURL: "https://playground.meshery.io",
+			expected:        base64.RawURLEncoding.EncodeToString([]byte("/extension/meshmap")),
+			expectedDecode:  "/extension/meshmap",
 		},
 		{
-			name:           "preserves query string in synthesized path",
-			callbackURL:    baseCallbackURL + "/extension/meshmap?tab=designs",
-			expected:       base64.RawURLEncoding.EncodeToString([]byte("/extension/meshmap?tab=designs")),
-			expectedDecode: "/extension/meshmap?tab=designs",
+			name:            "preserves query string in synthesized path",
+			callbackURL:     "https://playground.meshery.io/extension/meshmap?tab=designs",
+			baseCallbackURL: "https://playground.meshery.io",
+			expected:        base64.RawURLEncoding.EncodeToString([]byte("/extension/meshmap?tab=designs")),
+			expectedDecode:  "/extension/meshmap?tab=designs",
 		},
 		{
-			name:          "explicit ref query param wins",
-			refQueryParam: "L2V4dGVuc2lvbi9rYW52YXM",
-			callbackURL:   baseCallbackURL + "/somewhere/else",
-			expected:      "L2V4dGVuc2lvbi9rYW52YXM",
+			name:            "explicit ref query param wins",
+			refQueryParam:   "L2V4dGVuc2lvbi9rYW52YXM",
+			callbackURL:     "https://playground.meshery.io/somewhere/else",
+			baseCallbackURL: "https://playground.meshery.io",
+			expected:        "L2V4dGVuc2lvbi9rYW52YXM",
 		},
 		{
-			name:           "root path round-trips",
-			callbackURL:    baseCallbackURL + "/",
-			expected:       base64.RawURLEncoding.EncodeToString([]byte("/")),
-			expectedDecode: "/",
+			name:            "root path round-trips",
+			callbackURL:     "https://playground.meshery.io/",
+			baseCallbackURL: "https://playground.meshery.io",
+			expected:        base64.RawURLEncoding.EncodeToString([]byte("/")),
+			expectedDecode:  "/",
+		},
+		// Regression: MESHERY_SERVER_CALLBACK_URL is documented with a
+		// trailing slash in our deployment examples ("https://custom-host/").
+		// Pre-fix, strings.TrimPrefix produced "extension/meshmap" (no
+		// leading slash), which isSafeRedirect rejects as relative and
+		// resolvePostLoginRedirect then dropped to "/". Trim the trailing
+		// slash from the base before stripping so deep links survive.
+		{
+			name:            "trailing slash on baseCallbackURL is normalized",
+			callbackURL:     "https://playground.meshery.io/extension/meshmap",
+			baseCallbackURL: "https://playground.meshery.io/",
+			expected:        base64.RawURLEncoding.EncodeToString([]byte("/extension/meshmap")),
+			expectedDecode:  "/extension/meshmap",
+		},
+		{
+			name:            "trailing slash on baseCallbackURL with root path",
+			callbackURL:     "https://playground.meshery.io/",
+			baseCallbackURL: "https://playground.meshery.io/",
+			expected:        base64.RawURLEncoding.EncodeToString([]byte("/")),
+			expectedDecode:  "/",
+		},
+		// Defense-in-depth: if for any reason the prefix trim leaves a
+		// non-slash-prefixed remainder (e.g. a misconfigured callbackURL
+		// that doesn't actually start with baseCallbackURL), prepend "/" so
+		// the result is still parseable as a relative path. resolvePost-
+		// LoginRedirect's safety check is the final gate, but an absolute-
+		// URL leak past the encoder is worth preventing at the source.
+		{
+			name:            "non-prefix callbackURL gets leading slash prepended",
+			callbackURL:     "extension/meshmap",
+			baseCallbackURL: "https://playground.meshery.io",
+			expected:        base64.RawURLEncoding.EncodeToString([]byte("/extension/meshmap")),
+			expectedDecode:  "/extension/meshmap",
 		},
 	}
 
@@ -133,7 +169,7 @@ func TestComputePostLoginRefValue(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			actual := computePostLoginRefValue(tc.refQueryParam, tc.callbackURL, baseCallbackURL)
+			actual := computePostLoginRefValue(tc.refQueryParam, tc.callbackURL, tc.baseCallbackURL)
 			if actual != tc.expected {
 				t.Fatalf("expected %q, got %q", tc.expected, actual)
 			}
@@ -164,33 +200,29 @@ func TestSelectPostLoginRefValue(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "cookie wins over query param",
+			name:     "cookie value is used when present",
 			cookie:   &http.Cookie{Name: cookieName, Value: cookieValue},
-			query:    "?ref=" + queryValue,
 			expected: cookieValue,
 		},
+		// Regression: the cookie is the SOLE source of truth. A ?ref= the
+		// remote provider echoes back must never override (or fill in for)
+		// the cookie — that's how the playground.meshery.io 404 escaped in
+		// the first place. resolvePostLoginRedirect's "/" fallback handles
+		// the missing-cookie case without us re-trusting provider state.
 		{
-			name:     "falls back to query param when cookie missing",
+			name:     "ignores ?ref= query param even when cookie missing",
 			query:    "?ref=" + queryValue,
-			expected: queryValue,
-		},
-		{
-			name:     "falls back to query param when cookie is empty",
-			cookie:   &http.Cookie{Name: cookieName, Value: ""},
-			query:    "?ref=" + queryValue,
-			expected: queryValue,
-		},
-		{
-			name:     "returns empty when neither is set",
 			expected: "",
 		},
 		{
-			name: "cookie wins even when query param missing",
-			cookie: &http.Cookie{
-				Name:  cookieName,
-				Value: cookieValue,
-			},
-			expected: cookieValue,
+			name:     "ignores ?ref= query param when cookie is empty",
+			cookie:   &http.Cookie{Name: cookieName, Value: ""},
+			query:    "?ref=" + queryValue,
+			expected: "",
+		},
+		{
+			name:     "returns empty when cookie is missing",
+			expected: "",
 		},
 	}
 

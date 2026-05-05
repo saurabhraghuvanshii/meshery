@@ -25,31 +25,40 @@ func resolvePostLoginRedirect(rawRef, fallback string) string {
 	return fallback
 }
 
-// selectPostLoginRefValue returns the raw (encoded or plaintext) value to feed
-// into resolvePostLoginRedirect when the auth flow returns to TokenHandler.
+// selectPostLoginRefValue returns the raw (encoded or plaintext) value to
+// feed into resolvePostLoginRedirect when the auth flow returns to
+// TokenHandler.
 //
-// Meshery is the source of truth for its own post-login destination: the value
-// is captured into a cookie at InitiateLogin time and read back here. The
-// ?ref= query param is a fallback for callers that never went through
-// InitiateLogin (mesheryctl, direct extension callbacks) and for older
-// provider deployments that still echo a ref back to us. We deliberately do
-// not try to merge the two — when the cookie is present it wins outright,
-// since stale provider-side state (e.g. a synthesized ref baked into Hydra
-// state during a custom-domain bounce) was the bug this routing change was
-// introduced to fix.
+// Meshery is the sole source of truth for its own post-login destination:
+// the value is captured into a cookie at InitiateLogin time and read back
+// here. We deliberately do NOT fall back to the ?ref= query param. The
+// remote provider may echo a synthesized ref back to us (for example when a
+// custom-domain login bounce drops our original ref and the main domain
+// then auto-captures its own /login URL), and trusting that value is what
+// produced the playground.meshery.io 404 in the first place. When the
+// cookie is missing or empty resolvePostLoginRedirect already falls back to
+// "/", which is the right behavior for callers that never went through
+// InitiateLogin (mesheryctl, etc.).
 func selectPostLoginRefValue(r *http.Request, cookieName string) string {
-	if ck, err := r.Cookie(cookieName); err == nil && ck.Value != "" {
+	if ck, err := r.Cookie(cookieName); err == nil {
 		return ck.Value
 	}
-	return r.URL.Query().Get("ref")
+	return ""
 }
 
 // computePostLoginRefValue returns the value to store in the post-login
 // redirect cookie at InitiateLogin time. An explicit ?ref= query param wins
-// (callers expressing intent override our default), otherwise we fall back to
-// the originally-requested in-app path encoded the same way as the legacy
-// query-string contract. The value is left to resolvePostLoginRedirect to
+// (callers expressing intent override our default), otherwise we synthesize
+// the originally-requested in-app path from callbackURL by stripping the
+// baseCallbackURL prefix. The value is left to resolvePostLoginRedirect to
 // validate at read time, so this stays a pure string transform.
+//
+// We normalize the prefix to handle MESHERY_SERVER_CALLBACK_URL configs
+// that ship with a trailing slash (the form documented in our examples).
+// Without normalization, "https://host/" + "https://host/extension" produced
+// "extension" (no leading slash), which isSafeRedirect rejects as relative
+// and resolvePostLoginRedirect then drops to "/", silently breaking deep
+// links.
 func computePostLoginRefValue(refQueryParam, callbackURL, baseCallbackURL string) string {
 	if refQueryParam != "" {
 		return refQueryParam
