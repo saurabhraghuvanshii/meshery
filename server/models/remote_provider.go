@@ -4031,8 +4031,10 @@ func (l *RemoteProvider) TokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		redirectURL = GetRedirectURLForNavigatorExtension(&providerProperties, l.Log)
 	}
 
-	// Post-login redirect target: cookie wins, query param is a fallback.
-	// See selectPostLoginRefValue for the rationale.
+	// Post-login redirect target: read from the cookie set by InitiateLogin.
+	// resolvePostLoginRedirect's "/" fallback handles the missing-cookie case
+	// without us needing to trust any provider-side state. See
+	// selectPostLoginRefValue for the rationale.
 	redirectURL = resolvePostLoginRedirect(selectPostLoginRefValue(r, l.RefCookieName), redirectURL)
 	// One-shot cookie: clear it now that we've resolved the destination so a
 	// stale value can't override the next login flow.

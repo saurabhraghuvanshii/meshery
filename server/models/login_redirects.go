@@ -24,9 +24,9 @@ func resolvePostLoginRedirect(rawRef, fallback string) string {
 	return fallback
 }
 
-// selectPostLoginRefValue returns the raw (encoded or plaintext) value to feed
-// into resolvePostLoginRedirect when the auth flow returns to TokenHandler.
-//
+// selectPostLoginRefValue returns the raw (encoded or plaintext) value to
+// feed into resolvePostLoginRedirect when the auth flow returns to
+// TokenHandler.
 // Meshery is the source of truth for its own post-login destination: the value
 // is captured into a cookie at InitiateLogin time and read back here. The
 // ?ref= query param is a fallback for callers that never went through
@@ -36,20 +36,11 @@ func resolvePostLoginRedirect(rawRef, fallback string) string {
 // since stale provider-side state (e.g. a synthesized ref baked into Hydra
 // state during a custom-domain bounce) was the bug this routing change was
 // introduced to fix.
-// if ref is empty or missing returns "/"
 func selectPostLoginRefValue(r *http.Request, cookieName string) string {
-	redirectURI := ""
 	if ck, err := r.Cookie(cookieName); err == nil  {
-		redirectURI = ck.Value
-	}else {
-	    redirectURI = r.URL.Query().Get("ref")
+		return ck.Value
 	}
-
-	if redirectURI == "" {
-		return "/"
-	}
-
-	return redirectURI
+	return ""
 }
 
 

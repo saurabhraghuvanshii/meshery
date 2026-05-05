@@ -90,6 +90,7 @@ func TestResolvePostLoginRedirect(t *testing.T) {
 		})
 	}
 }
+
 func TestSelectPostLoginRefValue(t *testing.T) {
 	t.Parallel()
 
@@ -104,33 +105,29 @@ func TestSelectPostLoginRefValue(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "cookie wins over query param",
+			name:     "cookie value is used when present",
 			cookie:   &http.Cookie{Name: cookieName, Value: cookieValue},
-			query:    "?ref=" + queryValue,
 			expected: cookieValue,
 		},
+		// Regression: the cookie is the SOLE source of truth. A ?ref= the
+		// remote provider echoes back must never override (or fill in for)
+		// the cookie — that's how the playground.meshery.io 404 escaped in
+		// the first place. resolvePostLoginRedirect's "/" fallback handles
+		// the missing-cookie case without us re-trusting provider state.
 		{
-			name:     "falls back to query param when cookie missing",
+			name:     "ignores ?ref= query param even when cookie missing",
 			query:    "?ref=" + queryValue,
-			expected: queryValue,
-		},
-		{
-			name:     "falls back to query param when cookie is empty",
-			cookie:   &http.Cookie{Name: cookieName, Value: ""},
-			query:    "?ref=" + queryValue,
-			expected: queryValue,
-		},
-		{
-			name:     "returns empty when neither is set",
 			expected: "",
 		},
 		{
-			name: "cookie wins even when query param missing",
-			cookie: &http.Cookie{
-				Name:  cookieName,
-				Value: cookieValue,
-			},
-			expected: cookieValue,
+			name:     "ignores ?ref= query param when cookie is empty",
+			cookie:   &http.Cookie{Name: cookieName, Value: ""},
+			query:    "?ref=" + queryValue,
+			expected: "",
+		},
+		{
+			name:     "returns empty when cookie is missing",
+			expected: "",
 		},
 	}
 
