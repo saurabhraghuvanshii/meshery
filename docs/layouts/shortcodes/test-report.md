@@ -1,17 +1,17 @@
 ### END-TO-END TESTS
 
-- Testing started at: May 4th 2026, 11:53:09 pm
+- Testing started at: May 5th 2026, 12:35:03 am
 
 **📦 Test Result Summary**
 
-- ✅ 141 passed
-- ❌ 0 failed
+- ✅ 140 passed
+- ❌ 1 failed
 - ⚠️ 0 flaked
 - ⏩ 3 skipped
 
-⌛ _Duration: 7 minutes and 35 seconds_
+⌛ _Duration: 7 minutes and 27 seconds_
 
-**Overall Result**: 👍 All tests passed.
+**Overall Result**: 👎 Some tests failed.
 
 
 
@@ -105,7 +105,7 @@
 | 82 | None | chromium-local-provider | alias resolution | relationship | ✅ |
 | 83 | None | chromium-local-provider | alias resolution | relationship | ✅ |
 | 84 | None | chromium-local-provider | alias resolution | relationship | ✅ |
-| 85 | None | chromium-local-provider | All settings tabs |  | ✅ |
+| 85 | None | chromium-local-provider | All settings tabs |  | ❌ |
 | 86 | None | chromium-local-provider | Common UI elements |  | ✅ |
 | 87 | None | chromium-local-provider | config patching correctness | relationship | ✅ |
 | 88 | None | chromium-local-provider | config patching correctness | relationship | ✅ |
@@ -171,6 +171,37 @@
 | 148 | None | remote-setup | authenticate with Remote Provider |  | ✅ |
 
 </div>
+</details>
+
+
+
+
+**❌ Failed Test Details**
+
+The following tests failed. Click on each to see the failure reason:
+
+
+<details>
+<summary>❌ All settings tabs (None - chromium-local-provider)</summary>
+
+**File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/performance.spec.js`
+
+**Error Message:**
+```
+[31mTest timeout of 60000ms exceeded while running "beforeEach" hook.[39m
+```
+
+**Code Snippet:**
+```
+[0m [90m 36 |[39m
+ [90m 37 |[39m   test[33m.[39mdescribe([32m'Configure Metrics Navigation and Settings'[39m[33m,[39m () [33m=>[39m {
+[31m[1m>[22m[39m[90m 38 |[39m     test[33m.[39mbeforeEach([36masync[39m ({ page }) [33m=>[39m {
+ [90m    |[39m          [31m[1m^[22m[39m
+ [90m 39 |[39m       [36mawait[39m page[33m.[39mgetByTestId([32m'configure-metrics-button'[39m)[33m.[39mclick()[33m;[39m
+ [90m 40 |[39m       [36mawait[39m expect(page)[33m.[39mtoHaveURL([35m/metrics/i[39m)[33m;[39m
+ [90m 41 |[39m     })[33m;[39m[0m
+```
+
 </details>
 
 
