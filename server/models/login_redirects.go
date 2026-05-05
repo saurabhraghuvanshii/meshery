@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/base64"
 	"net/http"
 	"net/url"
 	"strings"
@@ -37,29 +36,23 @@ func resolvePostLoginRedirect(rawRef, fallback string) string {
 // since stale provider-side state (e.g. a synthesized ref baked into Hydra
 // state during a custom-domain bounce) was the bug this routing change was
 // introduced to fix.
+// if ref is empty or missing returns "/"
 func selectPostLoginRefValue(r *http.Request, cookieName string) string {
-	if ck, err := r.Cookie(cookieName); err == nil && ck.Value != "" {
-		return ck.Value
+	redirectURI := ""
+	if ck, err := r.Cookie(cookieName); err == nil  {
+		redirectURI = ck.Value
+	}else {
+	    redirectURI = r.URL.Query().Get("ref")
 	}
-	return r.URL.Query().Get("ref")
+
+	if redirectURI == "" {
+		return "/"
+	}
+
+	return redirectURI
 }
 
-// computePostLoginRefValue returns the value to store in the post-login
-// redirect cookie at InitiateLogin time. An explicit ?ref= query param wins
-// (callers expressing intent override our default), otherwise we fall back to
-// the originally-requested in-app path encoded the same way as the legacy
-// query-string contract. The value is left to resolvePostLoginRedirect to
-// validate at read time, so this stays a pure string transform.
-func computePostLoginRefValue(refQueryParam, callbackURL, baseCallbackURL string) string {
-	if refQueryParam != "" {
-		return refQueryParam
-	}
-	rel := strings.TrimPrefix(callbackURL, strings.TrimSuffix(baseCallbackURL, "/"))
-	if rel == "" || !strings.HasPrefix(rel, "/") {
-		rel = "/" + rel
-	}
-	return base64.RawURLEncoding.EncodeToString([]byte(rel))
-}
+
 
 // authInitiationPaths are server routes whose job is to *start* authentication.
 // Post-login redirects must never land on one of these, otherwise the browser

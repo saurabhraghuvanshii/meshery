@@ -524,7 +524,7 @@ func (l *RemoteProvider) InitiateLogin(w http.ResponseWriter, r *http.Request, _
 		// the provider redirects to /api/user/token.
 		http.SetCookie(w, &http.Cookie{
 			Name:     l.RefCookieName,
-			Value:    computePostLoginRefValue(refURLqueryParam, callbackURL.String(), baseCallbackURL),
+			Value:    refURLqueryParam,
 			Expires:  time.Now().Add(l.LoginCookieDuration),
 			Path:     "/",
 			HttpOnly: true,

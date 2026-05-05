@@ -90,66 +90,6 @@ func TestResolvePostLoginRedirect(t *testing.T) {
 		})
 	}
 }
-
-func TestComputePostLoginRefValue(t *testing.T) {
-	t.Parallel()
-
-	const baseCallbackURL = "https://playground.meshery.io"
-
-	tests := []struct {
-		name           string
-		refQueryParam  string
-		callbackURL    string
-		expected       string
-		expectedDecode string
-	}{
-		{
-			name:           "synthesizes from path when no query param",
-			callbackURL:    baseCallbackURL + "/extension/meshmap",
-			expected:       base64.RawURLEncoding.EncodeToString([]byte("/extension/meshmap")),
-			expectedDecode: "/extension/meshmap",
-		},
-		{
-			name:           "preserves query string in synthesized path",
-			callbackURL:    baseCallbackURL + "/extension/meshmap?tab=designs",
-			expected:       base64.RawURLEncoding.EncodeToString([]byte("/extension/meshmap?tab=designs")),
-			expectedDecode: "/extension/meshmap?tab=designs",
-		},
-		{
-			name:          "explicit ref query param wins",
-			refQueryParam: "L2V4dGVuc2lvbi9rYW52YXM",
-			callbackURL:   baseCallbackURL + "/somewhere/else",
-			expected:      "L2V4dGVuc2lvbi9rYW52YXM",
-		},
-		{
-			name:           "root path round-trips",
-			callbackURL:    baseCallbackURL + "/",
-			expected:       base64.RawURLEncoding.EncodeToString([]byte("/")),
-			expectedDecode: "/",
-		},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			actual := computePostLoginRefValue(tc.refQueryParam, tc.callbackURL, baseCallbackURL)
-			if actual != tc.expected {
-				t.Fatalf("expected %q, got %q", tc.expected, actual)
-			}
-			if tc.expectedDecode != "" {
-				decoded, err := base64.RawURLEncoding.DecodeString(actual)
-				if err != nil {
-					t.Fatalf("expected value to be valid base64, got decode err: %v", err)
-				}
-				if string(decoded) != tc.expectedDecode {
-					t.Fatalf("decoded value: expected %q, got %q", tc.expectedDecode, string(decoded))
-				}
-			}
-		})
-	}
-}
-
 func TestSelectPostLoginRefValue(t *testing.T) {
 	t.Parallel()
 
