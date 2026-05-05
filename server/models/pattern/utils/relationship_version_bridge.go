@@ -117,6 +117,10 @@ func relationshipMetadataV1alpha3ToV1beta2(src *relationshipv1alpha3.Relationshi
 	if src == nil {
 		return nil
 	}
+	// Keep the explicit field copy here instead of a direct struct conversion:
+	// the metadata envelope is structurally close across versions, but its
+	// Styles pointer targets version-specific structs whose enum-typed pointer
+	// fields differ by package and therefore cannot be converted wholesale.
 	return &relationshipv1beta2.RelationshipMetadata{
 		Description:          src.Description,
 		IsAnnotation:         src.IsAnnotation,
@@ -129,6 +133,9 @@ func relationshipMetadataV1beta2ToV1alpha3(src *relationshipv1beta2.Relationship
 	if src == nil {
 		return nil
 	}
+	// Same rationale as relationshipMetadataV1alpha3ToV1beta2: the nested Styles
+	// payload carries version-specific enum pointer types, so the bridge must
+	// copy explicitly rather than rely on a direct struct conversion.
 	return &relationshipv1alpha3.RelationshipMetadata{
 		Description:          src.Description,
 		IsAnnotation:         src.IsAnnotation,
@@ -217,6 +224,9 @@ func selectorSetV1alpha3ToV1beta2(src *relationshipv1alpha3.SelectorSet) *relati
 	if src == nil {
 		return nil
 	}
+	// Rebuild the outer selector slice because the item types differ across
+	// versions; inner pointer- and slice-typed fields stay aliased via the
+	// nested helpers so in-place mutations remain visible to both sides.
 	dst := make(relationshipv1beta2.SelectorSet, len(*src))
 	for i, item := range *src {
 		dst[i] = selectorSetItemV1alpha3ToV1beta2(item)
@@ -228,6 +238,9 @@ func selectorSetV1beta2ToV1alpha3(src *relationshipv1beta2.SelectorSet) *relatio
 	if src == nil {
 		return nil
 	}
+	// Rebuild the outer selector slice because the item types differ across
+	// versions; inner pointer- and slice-typed fields stay aliased via the
+	// nested helpers so in-place mutations remain visible to both sides.
 	dst := make(relationshipv1alpha3.SelectorSet, len(*src))
 	for i, item := range *src {
 		dst[i] = selectorSetItemV1beta2ToV1alpha3(item)

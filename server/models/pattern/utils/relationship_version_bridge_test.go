@@ -59,6 +59,16 @@ func TestRelationshipV1alpha3ToV1beta2_PreservesAliasedFields(t *testing.T) {
 		t.Fatalf("selector model pointer alias lost, got %q", got)
 	}
 
+	(*(*dst.Selectors)[0].Allow.From[0].MatchStrategyMatrix)[0][0] = "from.metadata.name"
+	if got := (*(*src.Selectors)[0].Allow.From[0].MatchStrategyMatrix)[0][0]; got != "from.metadata.name" {
+		t.Fatalf("selector matchStrategyMatrix alias lost, got %q", got)
+	}
+
+	(*(*dst.Selectors)[0].Allow.From[0].RelationshipDefinitionSelectorsPatch.MutatedRef)[0][0] = "status"
+	if got := (*(*src.Selectors)[0].Allow.From[0].Patch.MutatedRef)[0][0]; got != "status" {
+		t.Fatalf("selector mutatedRef alias lost, got %q", got)
+	}
+
 	roundtripped := RelationshipV1beta2ToV1alpha3(dst)
 	if roundtripped == nil {
 		t.Fatal("RelationshipV1beta2ToV1alpha3() returned nil")
@@ -68,6 +78,9 @@ func TestRelationshipV1alpha3ToV1beta2_PreservesAliasedFields(t *testing.T) {
 	}
 	if got := *roundtripped.Metadata.Styles.SourceLabel; got != "depends-on" {
 		t.Fatalf("round-tripped SourceLabel = %q, want %q", got, "depends-on")
+	}
+	if got := (*(*roundtripped.Selectors)[0].Allow.From[0].Patch.MutatedRef)[0][0]; got != "status" {
+		t.Fatalf("round-tripped MutatedRef = %q, want %q", got, "status")
 	}
 }
 
