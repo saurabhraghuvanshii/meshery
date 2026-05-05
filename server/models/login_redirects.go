@@ -54,7 +54,11 @@ func computePostLoginRefValue(refQueryParam, callbackURL, baseCallbackURL string
 	if refQueryParam != "" {
 		return refQueryParam
 	}
-	return base64.RawURLEncoding.EncodeToString([]byte(strings.TrimPrefix(callbackURL, baseCallbackURL)))
+	rel := strings.TrimPrefix(callbackURL, strings.TrimSuffix(baseCallbackURL, "/"))
+	if rel == "" || !strings.HasPrefix(rel, "/") {
+		rel = "/" + rel
+	}
+	return base64.RawURLEncoding.EncodeToString([]byte(rel))
 }
 
 // authInitiationPaths are server routes whose job is to *start* authentication.
