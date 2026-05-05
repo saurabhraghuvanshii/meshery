@@ -270,6 +270,22 @@ const defaultPolicyEvalTimeout = 3 * time.Minute
 
 var errEvalTimeout = errors.New("relationship policy evaluation timed out")
 
+// buildPolicyEvaluationEventMetadata builds the metadata map emitted on
+// the relationship-evaluation success event. Extracted into a named
+// function so the canonical camelCase keys (`historyTitle`, `trace`,
+// `evaluationResponse`, `evaluatedAt`) are pinned by a focused unit test
+// — see TestBuildPolicyEvaluationEventMetadata_UsesCanonicalCamelCaseKeys.
+// Drift here would silently re-introduce the snake_case keys that
+// production carried for 125,840 rows pre-flip.
+func buildPolicyEvaluationEventMetadata(resp pattern.EvaluationResponse) map[string]interface{} {
+	return map[string]interface{}{
+		"historyTitle":       fmt.Sprintf("%d changes made at version %s", len(resp.Actions), resp.Design.Version),
+		"trace":              resp.Trace,
+		"evaluationResponse": resp,
+		"evaluatedAt":        *resp.Timestamp,
+	}
+}
+
 func policyEvalTimeout() time.Duration {
 	if d := viper.GetDuration("POLICY_EVAL_TIMEOUT"); d > 0 {
 		return d
@@ -807,12 +823,8 @@ func (h *Handler) EvaluateRelationshipPolicy(
 		// include trace instead of design file in the event
 		description := fmt.Sprintf("Relationship evaluation complete: %d changes in '%s' at version '%s'", len(evaluationResponse.Actions), evaluationResponse.Design.Name, evaluationResponse.Design.Version)
 		event := eventBuilder.WithDescription(description).
-			WithMetadata(map[string]interface{}{
-				"historyTitle":       fmt.Sprintf("%d changes made at version %s", len(evaluationResponse.Actions), evaluationResponse.Design.Version),
-				"trace":              evaluationResponse.Trace,
-				"evaluationResponse": evaluationResponse,
-				"evaluatedAt":        *evaluationResponse.Timestamp,
-			}).WithSeverity(events.Informational).Build()
+			WithMetadata(buildPolicyEvaluationEventMetadata(evaluationResponse)).
+			WithSeverity(events.Informational).Build()
 		go func() {
 			_ = provider.PersistEvent(*event, token)
 		}()
