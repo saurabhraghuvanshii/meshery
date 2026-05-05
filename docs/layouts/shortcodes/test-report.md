@@ -1,15 +1,15 @@
 ### END-TO-END TESTS
 
-- Testing started at: May 5th 2026, 4:15:53 am
+- Testing started at: May 5th 2026, 4:16:28 am
 
 **📦 Test Result Summary**
 
-- ✅ 136 passed
-- ❌ 4 failed
+- ✅ 137 passed
+- ❌ 3 failed
 - ⚠️ 0 flaked
 - ⏩ 4 skipped
 
-⌛ _Duration: 5 minutes and 57 seconds_
+⌛ _Duration: 7 minutes and 27 seconds_
 
 **Overall Result**: 👎 Some tests failed.
 
@@ -21,7 +21,7 @@
 
 | Test | Provider | Browser | Test Case | Tags | Result |
 | :---: | :---: | :---: | :--- | :---: | :---: |
-| 1 | Meshery | chromium-meshery-provider | Action buttons on adapters tab |  | ❌ |
+| 1 | Meshery | chromium-meshery-provider | Action buttons on adapters tab |  | ✅ |
 | 2 | Meshery | chromium-meshery-provider | Aggregation Charts are displayed |  | ✅ |
 | 3 | Meshery | chromium-meshery-provider | alias resolution | relationship | ✅ |
 | 4 | Meshery | chromium-meshery-provider | alias resolution | relationship | ✅ |
@@ -223,29 +223,6 @@ The following tests failed. Click on each to see the failure reason:
  [90m 22 |[39m     extensionsPage [33m=[39m [36mnew[39m [33mExtensionsPage[39m(page)[33m;[39m
  [90m 23 |[39m     [36mawait[39m extensionsPage[33m.[39mgoto()[33m;[39m
  [90m 24 |[39m   })[33m;[39m[0m
-```
-
-</details>
-
-<details>
-<summary>❌ Action buttons on adapters tab (Meshery - chromium-meshery-provider)</summary>
-
-**File Location:** `/home/runner/work/meshery/meshery/ui/tests/e2e/performance.spec.js`
-
-**Error Message:**
-```
-[31mTest timeout of 60000ms exceeded while running "beforeEach" hook.[39m
-```
-
-**Code Snippet:**
-```
-[0m [90m 20 |[39m
- [90m 21 |[39m test[33m.[39mdescribe([32m'Performance Section Tests'[39m[33m,[39m () [33m=>[39m {
-[31m[1m>[22m[39m[90m 22 |[39m   test[33m.[39mbeforeEach([36masync[39m ({ page }) [33m=>[39m {
- [90m    |[39m        [31m[1m^[22m[39m
- [90m 23 |[39m     [36mconst[39m dashboardPage [33m=[39m [36mnew[39m [33mDashboardPage[39m(page)[33m;[39m
- [90m 24 |[39m     [36mawait[39m dashboardPage[33m.[39mnavigateToDashboard()[33m;[39m
- [90m 25 |[39m     [36mawait[39m dashboardPage[33m.[39mnavigateToPerformance()[33m;[39m[0m
 ```
 
 </details>
