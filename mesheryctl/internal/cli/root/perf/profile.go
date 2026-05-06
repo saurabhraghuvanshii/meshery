@@ -200,7 +200,7 @@ func profilesToStringArrays(profiles []models.PerformanceProfile) [][]string {
 	return data
 }
 
-func firstString(values []string) string {
+func firstString[S ~[]string](values S) string {
 	if len(values) == 0 {
 		return ""
 	}

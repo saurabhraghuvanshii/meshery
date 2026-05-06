@@ -11,6 +11,7 @@ import (
 	"github.com/meshery/meshery/mesheryctl/internal/cli/pkg/display"
 	"github.com/meshery/meshery/mesheryctl/pkg/utils"
 	"github.com/meshery/meshery/server/models"
+	core "github.com/meshery/schemas/models/core"
 )
 
 var tempProfileID = "a2a555cf-ae16-479c-b5d2-a35656ba741e"
@@ -167,7 +168,7 @@ func TestResultCmd(t *testing.T) {
 func TestProfilesToStringArraysHandlesMissingLoadGenerators(t *testing.T) {
 	t.Parallel()
 
-	id := uuid.Nil
+	id := core.Uuid(uuid.Nil)
 	data := profilesToStringArrays([]models.PerformanceProfile{
 		{
 			ID:             &id,

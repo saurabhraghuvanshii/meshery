@@ -143,7 +143,7 @@ mesheryctl perf apply meshery-profile-new --url "https://google.com" --load-gene
 			}
 
 			if testURL == "" {
-				testURL = testClient.EndpointUrls[0]
+				testURL = firstString(testClient.EndpointUrls)
 			}
 
 			if testMesh == "" {
