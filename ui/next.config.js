@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-const path = require('path');
 
 const isPlaygroundBuild = process.env.PLAYGROUND === 'true';
 
@@ -46,11 +45,6 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       'remote-component.config.js': __dirname + '/remote-component.config.js',
-      // Force a single React instance (prevents "Invalid hook call" / useContext null)
-      react: path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
-      'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
-      'react/jsx-dev-runtime': path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime'),
     };
 
     // Handle markdown imports (replaces next-remove-imports)
