@@ -72,7 +72,7 @@ func TestResultCmd(t *testing.T) {
 		},
 		{
 			Name: "result output tolerates empty load generators",
-			Args: []string{"result", "abhishek"},
+			Args: []string{"result", "John Doe"},
 			URLs: []utils.MockURL{
 				{Method: "GET", URL: profileURL, Response: "result.profile.emptyLoadGenerators.response.golden", ResponseCode: 200},
 				{Method: "GET", URL: resultURL, Response: "result.list.response.golden", ResponseCode: 200},
