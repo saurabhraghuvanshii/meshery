@@ -9,11 +9,11 @@
 &lt;div class="tab-container tab-level-1"&gt;&lt;input id="api-reference-tabs-1-1" type="radio" name="api-reference-tabs-1" checked&gt;
  &lt;label for="api-reference-tabs-1-1"&gt;&lt;i class="fa fa-cube" aria-hidden="true"&gt;&lt;/i&gt;REST API
  &lt;/label&gt;
- &lt;section class="tabbed" id="api-reference-tabs-1-content-1"&gt;&lt;p&gt;Meshery Server's REST API is available at &lt;code&gt;http://[hostname]:[port]/api/&lt;/code&gt;.&lt;/p&gt;</description></item><item><title>Extensibility: Authorization</title><link>/reference/extensibility/authorization/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/reference/extensibility/authorization/</guid><description>&lt;p&gt;Meshery features an extensible authorization system that offers the ability to deliver fine-grained access control across it&amp;rsquo;s web-based user interface, &lt;a href="/concepts/architecture/"&gt;Meshery UI&lt;/a&gt;.&lt;/p&gt;
+ &lt;section class="tabbed" id="api-reference-tabs-1-content-1"&gt;&lt;p&gt;Meshery Server's REST API is available at &lt;code&gt;http://[hostname]:[port]/api/&lt;/code&gt;.&lt;/p&gt;</description></item><item><title>Extensibility: Authorization</title><link>/reference/extensibility/authorization/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/reference/extensibility/authorization/</guid><description>&lt;p&gt;Meshery features an extensible authorization system that offers the ability to deliver fine-grained access control across its web-based user interface, &lt;a href="/concepts/architecture/"&gt;Meshery UI&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 id="authorization-keys"&gt;
 	Authorization Keys
 &lt;/h2&gt;
-&lt;p&gt;The extensible authorization system consists of a large set of keys. Each key uniquely represents a specific capability, for example, the ability to view a &lt;a href="/concepts/logical/connections/"&gt;Connection&lt;/a&gt;, edit or delete a Connection. With the help of these keys, the system evaluates the permissions during runtime and renders UI both helping offer a secure management system and a customizable user experience.&lt;/p&gt;</description></item><item><title>Extensibility: Build-time</title><link>/reference/extensibility/build-time/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/reference/extensibility/build-time/</guid><description>&lt;p&gt;Meshery supports build-time extensibility, allowing system integrators to customize the Meshery container image during the Docker build process. This extension point enables organizations to inject custom configurations, data, provider extensions, and other resources directly into the Meshery container image at build-time.&lt;/p&gt;
+&lt;p&gt;The extensible authorization system consists of a large set of keys. Each key uniquely represents a specific capability, for example, the ability to view, edit, or delete a &lt;a href="/concepts/logical/connections/"&gt;Connection&lt;/a&gt;. With the help of these keys, the system evaluates permissions at runtime to render the UI, offering both a secure management system and a customizable user experience.&lt;/p&gt;</description></item><item><title>Extensibility: Build-time</title><link>/reference/extensibility/build-time/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/reference/extensibility/build-time/</guid><description>&lt;p&gt;Meshery supports build-time extensibility, allowing system integrators to customize the Meshery container image during the Docker build process. This extension point enables organizations to inject custom configurations, data, provider extensions, and other resources directly into the Meshery container image at build-time.&lt;/p&gt;
 &lt;h2 id="build-time-extension-point"&gt;
 	Build-time Extension Point
 &lt;/h2&gt;
@@ -24,26 +24,12 @@
 	x-annotations as an Extension Point
 &lt;/h2&gt;
 &lt;p&gt;Meshery already uses several &lt;code&gt;x-*&lt;/code&gt; vendor extensions internally to guide code generation, such as &lt;code&gt;x-go-type&lt;/code&gt;, &lt;code&gt;x-oapi-codegen-extra-tags&lt;/code&gt;, and &lt;code&gt;x-internal&lt;/code&gt;. These are consumed by Meshery&amp;rsquo;s own build pipeline.&lt;/p&gt;</description></item><item><title>Extensibility: UI</title><link>/reference/extensibility/ui/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/reference/extensibility/ui/</guid><description>&lt;p&gt;Meshery UI has a number of extension points that allow you to greatly customize both its functional behavior and visual appearance. These extension points come in different types, and this document describes each type, its example use, best practices to consider, and caveats of which to be aware.&lt;/p&gt;
-&lt;h3 id="extensibility-customizing-text-based-forms-using-rjsf-custom-component"&gt;
-	Extensibility: Customizing Text-based Forms using RJSF Custom Component
-&lt;/h3&gt;
-&lt;p&gt;RJSFWrapperComponent provides customizations for RJSF forms, overriding the default behavior of meshery-ui rjsf forms. The &lt;a href="https://github.com/meshery/meshery/blob/0bc68d1cd0ba80a565afa68bce80899c22db9a2e/ui/components/MesheryMeshInterface/PatternService/RJSF.js#L66"&gt;Rjsf forms are wrapped&lt;/a&gt; in this component to receive custom props from a Meshery extension.
-
-
-&lt;pre class="codeblock-pre"&gt;
-	&lt;div class="codeblock"&gt;
-		&lt;code class="clipboardjs"&gt;&amp;lt;RJSFWrapperComponent {...props}&amp;gt;
- &amp;lt;RJSFForm
- isLoading={isLoading}
- schema={schema}
- data={data}
- onChange={(e) =&amp;gt; {
- setData(e.formData)
- }}
- jsonSchema={jsonSchema}
- /&amp;gt;
-&amp;lt;/RJSFWrapperComponent&amp;gt;&lt;/code&gt;
-	&lt;/div&gt;
-&lt;/pre&gt;
-
-See this &lt;a href="https://github.com/meshery/meshery/blob/0bc68d1cd0ba80a565afa68bce80899c22db9a2e/ui/components/MesheryMeshInterface/PatternService/RJSF.js#L91"&gt;RJSF Component&lt;/a&gt; as an example of how these properties are received.&lt;/p&gt;</description></item></channel></rss>
+&lt;div class="alert alert-warning" role="alert"&gt;&lt;div class="h4 alert-heading" role="heading"&gt;UI extensions share Meshery UI's origin and session&lt;/div&gt;
+&lt;p&gt;Extension components are loaded into Meshery UI&amp;rsquo;s own browser origin and JavaScript
+context. They share the DOM, the session cookie, and the ability to call any API the
+signed-in user can call. There is no iframe or sandbox boundary between an extension
+component and the rest of the UI, so an enabled UI extension is trusted code. Operators
+should read
+&lt;a href="/installation/production/security-hardening/#trusting-an-extension"&gt;Trusting an extension&lt;/a&gt;;
+authors should read
+&lt;a href="/reference/extensibility/verify-compatibility/"&gt;Ensuring Extension Compatibility&lt;/a&gt;.&lt;/p&gt;</description></item></channel></rss>
