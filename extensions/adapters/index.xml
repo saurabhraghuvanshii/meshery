@@ -134,28 +134,7 @@ Adapters share a common Day 1 / Day 2 model: they install infrastructure with th
 &lt;h4 id="2-vpp-icmp-application"&gt;
 	2. VPP-ICMP Application
 &lt;/h4&gt;
-&lt;p&gt;&lt;em&gt;A simple example that connects a vpp based Pod to a Network Service using memif.&lt;/em&gt;&lt;/p&gt;</description></item><item><title>Meshery Adapter for NGINX Service Mesh</title><link>/extensions/adapters/nginx-sm/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/extensions/adapters/nginx-sm/</guid><description>&lt;p&gt;The Meshery Adapter for NGINX Service Mesh is currently under construction (stable state). Want to contribute? Check our &lt;a href="https://github.com/meshery/meshery-nginx-sm"&gt;progress&lt;/a&gt;.&lt;/p&gt;
-&lt;h3 id="features"&gt;
-	Features
-&lt;/h3&gt;
-&lt;ol&gt;
-&lt;li&gt;Lifecycle management of NGINX Service Mesh&lt;/li&gt;
-&lt;li&gt;Lifecycle management of sample applications&lt;/li&gt;
-&lt;li&gt;Performance testing&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h3 id="sample-applications"&gt;
-	Sample Applications
-&lt;/h3&gt;
-&lt;p&gt;The Meshery Adapter for NGINX Service Mesh includes a handful of sample applications. Use Meshery to deploy any of these sample applications.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;Emojivoto&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;A microservice application that allows users to vote for their favorite emoji, and tracks votes received on a leaderboard.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Bookinfo&lt;/p&gt;</description></item><item><title>Meshery Adapter for Tanzu Service Mesh</title><link>/extensions/adapters/tanzu-sm/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/extensions/adapters/tanzu-sm/</guid><description>&lt;h3 id="suggested-reading"&gt;
+&lt;p&gt;&lt;em&gt;A simple example that connects a vpp based Pod to a Network Service using memif.&lt;/em&gt;&lt;/p&gt;</description></item><item><title>Meshery Adapter for Tanzu Service Mesh</title><link>/extensions/adapters/tanzu-sm/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/extensions/adapters/tanzu-sm/</guid><description>&lt;h3 id="suggested-reading"&gt;
 	Suggested Reading
 &lt;/h3&gt;
 &lt;ul&gt;
